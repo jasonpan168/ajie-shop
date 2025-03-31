@@ -36,24 +36,47 @@
   <img src="https://cdn.laikr.com//shujuku/202503311454729.png" alt="后台截图" style="max-width: 100%; border-radius: 8px;" />
 </p>
 
-## 🚀 快速开始
+🚀 快速开始
 
 ```
 安装步骤1 分钟内完成安装
 1：打开宝塔，把整个项目文件导入进去
 2：打开安装页面https://你的域名/install
 3：输入数据库内容和管理员账号信息
-![CleanShot 2025-03-31 at 11 55 41@2x](https://github.com/user-attachments/assets/ab01e9b1-79eb-46ba-9858-dd503f2c3569)
-![CleanShot 2025-03-31 at 11 55 55@2x](https://github.com/user-attachments/assets/703d2608-3771-4a6e-a1f7-be6ad8f6c261)
 4：登录后台配置支付接口添加商品以及邮件等核心配置
 5：可以打开运行项目了https://你的域名
 6：待支付订单自动删除设置：宝塔左侧菜单栏点击计划任务-添加任务如图，脚本为：php /www/wwwroot/你的域名/clean_orders.php
-```
-![CleanShot 2025-03-31 at 16 20 47@2x](https://github.com/user-attachments/assets/b8932f82-d0ed-4f3c-bb8b-50f3304037e6)
-![CleanShot 2025-03-31 at 16 22 55@2x](https://github.com/user-attachments/assets/047c9f00-3bea-4a8b-8858-d31076fa3e4d)
-运行日志显示这个就是正常了
-![CleanShot 2025-03-31 at 16 24 41@2x](https://github.com/user-attachments/assets/d5a1211b-1dd3-4a1b-8fcd-de6db8f5c6b4)
 
+```
+<!-- ✅ 后台截图补充1 -->
+<p align="center">
+  <img src="https://cdn.laikr.com//shujuku/202503311638888.png" alt="后台图1" style="max-width: 100%; border-radius: 8px;" />
+</p>
+
+<!-- ✅ 后台截图补充2 -->
+<p align="center">
+  <img src="https://cdn.laikr.com//shujuku/202503311638972.png" alt="后台图2" style="max-width: 100%; border-radius: 8px;" />
+</p>
+
+<!-- ✅ 宝塔计划任务截图1 -->
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/b8932f82-d0ed-4f3c-bb8b-50f3304037e6" alt="计划任务图1" style="max-width: 100%; border-radius: 8px;" />
+</p>
+
+<!-- ✅ 宝塔计划任务截图2 -->
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/047c9f00-3bea-4a8b-8858-d31076fa3e4d" alt="计划任务图2" style="max-width: 100%; border-radius: 8px;" />
+</p>
+
+<!-- ✅ 日志输出说明 -->
+<p align="center">
+  <strong>运行日志显示这个就是正常了：</strong>
+</p>
+
+<!-- ✅ 日志输出截图 -->
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/d5a1211b-1dd3-4a1b-8fcd-de6db8f5c6b4" alt="日志截图" style="max-width: 100%; border-radius: 8px;" />
+</p>
 
 
 ## 🔐 授权说明
