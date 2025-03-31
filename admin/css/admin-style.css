@@ -1,0 +1,239 @@
+/* 管理后台统一样式 */
+.sidebar {
+  background: #343a40;
+  min-height: 100vh;
+  padding-top: 0;
+  position: fixed;
+  width: 250px;
+  z-index: 1000;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+}
+
+.sidebar a {
+  color: rgba(255,255,255,0.8);
+  display: block;
+  padding: 12px 20px;
+  transition: all 0.3s ease;
+  border-left: 3px solid transparent;
+}
+
+.sidebar a.active,
+.sidebar a:hover {
+  background: rgba(0,123,255,0.1);
+  color: #fff;
+  text-decoration: none;
+  border-left: 3px solid #007bff;
+}
+
+.sidebar i {
+  margin-right: 8px;
+  width: 20px;
+  text-align: center;
+}
+
+.content {
+  margin-left: 120px;
+  padding: 20px 30px;
+  min-height: 100vh;
+  background: #f8f9fa;
+  width: calc(100% - 120px);
+  box-sizing: border-box;
+}
+
+/* 卡片样式优化 */
+.card {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  margin-bottom: 20px;
+}
+
+.card-header {
+  background-color: #fff;
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+  padding: 15px 20px;
+}
+
+.card-body {
+  padding: 20px;
+}
+
+/* 表单样式优化 */
+.form-control {
+  border-radius: 4px;
+  border: 1px solid #ced4da;
+}
+
+.form-control:focus {
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
+}
+
+.col-form-label {
+  font-weight: 500;
+  color: #495057;
+}
+
+.form-text {
+  color: #6c757d;
+  margin-top: 5px;
+}
+
+/* 按钮样式优化 */
+.btn {
+  padding: 8px 16px;
+  font-weight: 500;
+}
+
+.btn-primary {
+  background-color: #007bff;
+  border-color: #007bff;
+}
+
+.btn-primary:hover {
+  background-color: #0069d9;
+  border-color: #0062cc;
+}
+
+/* 表格样式优化 */
+.table {
+  background: #fff;
+  margin-bottom: 0;
+}
+
+.table th {
+  border-top: none;
+  background: #f8f9fa;
+  font-weight: 500;
+}
+
+.table td {
+  padding: 8px;
+  vertical-align: middle;
+}
+
+.table-img {
+  max-width: 80px;
+  max-height: 80px;
+  object-fit: contain;
+}
+
+/* 响应式调整 */
+/* 大屏幕设备 */
+@media (min-width: 1200px) {
+  .content {
+    padding: 30px;
+  }
+  
+  .card {
+    margin-bottom: 30px;
+  }
+}
+
+/* 平板设备 */
+@media (max-width: 991px) {
+  .sidebar {
+    width: 100px;
+  }
+  
+  .content {
+    margin-left: 100px;
+    width: calc(100% - 100px);
+    padding: 20px;
+  }
+  
+  .card-header {
+    padding: 12px 15px;
+  }
+  
+  .card-body {
+    padding: 15px;
+  }
+  
+  .table td, .table th {
+    padding: 10px;
+  }
+}
+
+/* 手机设备 */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    width: 100%;
+    min-height: auto;
+    padding-top: 0;
+    height: auto;
+    bottom: 0;
+    top: auto;
+    z-index: 1030;
+  }
+  
+  .content {
+    margin-left: 0;
+    margin-bottom: 60px;
+    padding: 15px;
+    width: 100%;
+  }
+  
+  .sidebar a {
+    padding: 8px 15px;
+    border-left: none;
+    border-top: 3px solid transparent;
+    display: inline-block;
+  }
+  
+  .sidebar a.active,
+  .sidebar a:hover {
+    border-left: none;
+    border-top: 3px solid #007bff;
+  }
+  
+  .card {
+    margin-bottom: 15px;
+  }
+  
+  .table-responsive {
+    margin-bottom: 15px;
+  }
+  
+  .form-group {
+    margin-bottom: 15px;
+  }
+  
+  .btn {
+    padding: 6px 12px;
+    font-size: 14px;
+  }
+}
+
+/* 小屏手机设备 */
+@media (max-width: 576px) {
+  .content {
+    padding: 10px;
+  }
+  
+  .card-header {
+    padding: 10px;
+  }
+  
+  .card-body {
+    padding: 12px;
+  }
+  
+  .table td, .table th {
+    padding: 8px;
+    font-size: 14px;
+  }
+  
+  .table-img {
+    max-width: 60px;
+    max-height: 60px;
+  }
+  
+  .form-control {
+    font-size: 14px;
+  }
+  
+  .btn {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+}

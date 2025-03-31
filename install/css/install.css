@@ -1,0 +1,180 @@
+/* 安装向导样式 */
+.install-container {
+    max-width: 800px;
+    margin: 40px auto;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+    padding: 30px;
+}
+
+.install-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.install-header h1 {
+    color: #2c3e50;
+    font-size: 28px;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.install-header p {
+    color: #7f8c8d;
+    font-size: 16px;
+}
+
+.progress-wrapper {
+    margin: 30px 0;
+    padding: 0 50px;
+}
+
+.progress {
+    height: 8px;
+    background-color: #eef2f7;
+    border-radius: 10px;
+}
+
+.progress-bar {
+    background: linear-gradient(to right, #3498db, #2ecc71);
+    border-radius: 10px;
+    transition: width 0.3s ease;
+}
+
+.step-indicators {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    position: relative;
+}
+
+.step-indicator {
+    text-align: center;
+    color: #95a5a6;
+    font-size: 14px;
+    font-weight: 500;
+    flex: 1;
+}
+
+.step-indicator.active {
+    color: #2ecc71;
+}
+
+.step-indicator.completed {
+    color: #3498db;
+}
+
+.install-form {
+    background: #f8fafc;
+    padding: 30px;
+    border-radius: 6px;
+    margin-top: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #34495e;
+    font-weight: 500;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px 15px;
+    border: 2px solid #e9ecef;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.form-control:focus {
+    border-color: #3498db;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(52,152,219,0.1);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #3498db, #2ecc71);
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(46,204,113,0.2);
+}
+
+.completion-message {
+    text-align: center;
+    padding: 40px 0;
+}
+
+.completion-message h2 {
+    color: #2ecc71;
+    margin-bottom: 20px;
+}
+
+.completion-links {
+    margin-top: 30px;
+}
+
+.completion-links a {
+    display: inline-block;
+    padding: 10px 25px;
+    margin: 0 10px;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 6px;
+    transition: transform 0.2s;
+}
+
+.completion-links .link-admin {
+    background: #3498db;
+}
+
+.completion-links .link-home {
+    background: #2ecc71;
+}
+
+.completion-links a:hover {
+    transform: translateY(-2px);
+}
+
+.security-notice {
+    margin-top: 30px;
+    padding: 15px;
+    background: #fff8e1;
+    border-left: 4px solid #ffa000;
+    color: #795548;
+    font-size: 14px;
+    border-radius: 4px;
+}
+
+.error-message {
+    background: #fee;
+    color: #e74c3c;
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+.success-message {
+    background: #e8f8f5;
+    color: #27ae60;
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
