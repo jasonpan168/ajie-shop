@@ -94,7 +94,7 @@
 ## 👤 作者信息
 
 <p align="center">
-  <strong>开源社区新人，大家多关照！欢迎关注支持 www.1993.cm🫡</strong>
+  <strong>开源社区新人，大家多关照！欢迎关注支持 https://www.1993.cm🫡</strong>
 </p>
 
 <p align="center">
