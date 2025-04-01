@@ -91,10 +91,10 @@
 
 详细说明见 LICENSE 与 法律声明.txt
 
-## 👤 作者信息
+## 👤 作者信息https://www.1993.cm
 
 <p align="center">
-  <strong>开源社区新人，大家多关照！欢迎关注支持 https://www.1993.cm🫡</strong>
+  <strong>开源社区新人，大家多关照！欢迎关注支持 🫡</strong>
 </p>
 
 <p align="center">
