@@ -39,6 +39,9 @@
 🚀 快速开始
 
 ```
+项目 YouTube 视频介绍安装演示：https://www.youtube.com/watch?v=ZfiJaCK7XVo
+项目的支付和机器人通知配置介绍：https://www.1993.cm/1633.html
+
 安装步骤1 分钟内完成安装
 1：打开宝塔，把整个项目文件导入进去
 2：打开安装页面https://你的域名/install
@@ -91,7 +94,7 @@
 ## 👤 作者信息
 
 <p align="center">
-  <strong>开源社区新人，大家多关照！欢迎关注支持 🫡</strong>
+  <strong>开源社区新人，大家多关照！欢迎关注支持 www.1993.cm🫡</strong>
 </p>
 
 <p align="center">
