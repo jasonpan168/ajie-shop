@@ -1,193 +1,151 @@
 <?php
-/**
- * 商品详情展示系统
- * 
- * 作者：阿杰
- * 电报群：https://t.me/+yK7diUyqmxI2MjZl
- * 作者邮箱：weijianao@gmail.com
- * 作者油管：https://www.youtube.com/@ajieshuo
- * 开发日期：2025年2月6日
- * 首板开发完成日期：2025年3月31日
- * 
- * 该文件主要用途是：
- * 展示商品详情页面，包括商品标题、价格、描述等信息，
- * 并提供下单入口，支持商品预览和购买功能。
- * 
- * 未经允许禁止商用，仅供学习研究个人使用
- */
-
 require_once 'db.php';
 require_once 'lib/SafeOutput.php';
 
 if (!isset($_GET['id'])) {
-    die("产品不存在");
+    die("Product not found");
 }
 $id = intval($_GET['id']);
 $stmt = $pdo->prepare("SELECT * FROM products WHERE id = ?");
 $stmt->execute([$id]);
 $product = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$product) {
-    die("产品不存在");
+    die("Product not found");
 }
 ?>
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <title><?php echo SafeOutput::text($product['title']); ?> - 虚拟商品商城</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- 引入 Bootstrap 4 CSS -->
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
-  <style>
-    /* 保持原有标题和副标题样式 */
-    .product-header {
-      margin-top: 20px;
-      font-size: 2rem;
-      font-weight: bold;
-      margin-bottom: 15px;
-    }
-    .product-subtitle {
-      color: #888;
-      font-size: 1.2rem;
-      margin-bottom: 25px;
-    }
-    .product-detail {
-      margin-top: 40px;
-      padding-top: 10px;
-      border-top: 1px solid #ddd;
-    }
-    .detail-img {
-      max-width: 100%;
-      height: auto;
-      display: block;
-      margin: 15px 0;
-    }
-    /* 左侧图片容器 */
-    .cover-container {
-      flex: 1;
-      min-height: 280px;
-      overflow: hidden;
-      border-radius: 4px;
-      margin-bottom: 15px;
-    }
-    .cover-container img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    /* 右侧下单区域 */
-    .info-section {
-      flex: 1;
-    }
-    /* 桌面端左右等高布局 */
-    @media (min-width: 768px) {
-      .equal-height-row {
-        display: flex;
-        align-items: stretch;
-      }
-      .equal-height-row > .col-md-6 {
-        display: flex;
-        flex-direction: column;
-      }
-      .card-body {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        padding: 20px;
-      }
-      .buyer-form {
-        margin-top: 20px;
-      }
-    }
-    /* 手机端：堆叠显示，信息区域带边框 */
-    @media (max-width: 767.98px) {
-      .info-section {
-         border: 1px solid #ddd;
-         border-radius: 4px;
-         background-color: #f9f9f9;
-         padding: 20px;
-         margin-top: 20px;
-      }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo SafeOutput::text($product['title']); ?> - CloudShop</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            padding-top: 70px;
+        }
+        .navbar { background: linear-gradient(90deg, #2c3e50 0%, #3498db 100%) !important; box-shadow: 0 2px 20px rgba(0,0,0,0.1); }
+        .navbar-brand { font-size: 1.8rem; font-weight: 700; color: white !important; }
+        .navbar-nav .nav-link { color: rgba(255,255,255,0.85) !important; margin: 0 10px; font-weight: 500; }
+        .navbar-nav .nav-link:hover { color: white !important; }
+        .back-link { margin: 20px 0; }
+        .back-link a { color: #667eea; text-decoration: none; font-weight: 600; }
+        .back-link a:hover { color: #764ba2; }
+        .product-container { max-width: 1200px; margin: 40px auto; background: white; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.08); overflow: hidden; }
+        .product-wrapper { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; padding: 50px; }
+        .product-image { width: 100%; aspect-ratio: 1; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 5rem; }
+        .product-image img { width: 100%; height: 100%; object-fit: cover; }
+        .product-title { font-size: 2.5rem; font-weight: 700; color: #2c3e50; margin-bottom: 15px; }
+        .product-subtitle { font-size: 1.2rem; color: #7f8c8d; margin-bottom: 30px; }
+        .price { font-size: 3rem; font-weight: 700; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 30px; }
+        .buy-button { width: 100%; padding: 16px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 10px; font-size: 1.1rem; font-weight: 700; cursor: pointer; transition: all 0.3s ease; }
+        .buy-button:hover { transform: translateY(-2px); box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4); }
+        .form-control { padding: 12px 15px; border: 2px solid #ecf0f1; border-radius: 8px; }
+        .form-control:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+        .qty-control { display: flex; gap: 10px; align-items: center; }
+        .qty-btn { width: 40px; height: 40px; border: 2px solid #ecf0f1; background: white; border-radius: 8px; cursor: pointer; font-weight: 700; }
+        .qty-btn:hover { background: #667eea; color: white; border-color: #667eea; }
+        footer { background: #2c3e50; color: white; padding: 40px 20px 20px; text-align: center; margin-top: 60px; }
+        @media (max-width: 768px) { .product-wrapper { grid-template-columns: 1fr; gap: 30px; } .product-title { font-size: 1.8rem; } .price { font-size: 2rem; } }
+    </style>
 </head>
 <body>
-<div class="container">
-  <!-- 商品标题 -->
-  <h1 class="product-header"><?php echo SafeOutput::text($product['title']); ?></h1>
-  <!-- 副标题：简短介绍 -->
-  <?php if (!empty($product['description'])): ?>
-    <h4 class="product-subtitle"><?php echo SafeOutput::text($product['description']); ?></h4>
-  <?php endif; ?>
-  
-  <!-- 主区域：左右两栏（桌面端左右对齐，手机端自动堆叠） -->
-  <div class="row my-4 equal-height-row">
-    <!-- 左侧图片区域 -->
-    <div class="col-md-6 mb-3 mb-md-0">
-      <div class="cover-container flex-fill">
-        <img src="<?php echo SafeOutput::attr($product['cover']); ?>" alt="<?php echo SafeOutput::attr($product['title']); ?>">
-      </div>
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/"><i class="fas fa-shopping-bag"></i> CloudShop</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="/"><i class="fas fa-home"></i> Home</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="back-link"><a href="/"><i class="fas fa-arrow-left"></i> Back to Products</a></div>
+        
+        <div class="product-container">
+            <div class="product-wrapper">
+                <div>
+                    <div class="product-image">
+                        <?php if (!empty($product['cover'])): ?>
+                            <img src="<?php echo SafeOutput::attr($product['cover']); ?>" alt="<?php echo SafeOutput::attr($product['title']); ?>">
+                        <?php else: ?>
+                            📦
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <div>
+                    <h1 class="product-title"><?php echo SafeOutput::text($product['title']); ?></h1>
+                    <?php if (!empty($product['description'])): ?>
+                        <p class="product-subtitle"><?php echo SafeOutput::text($product['description']); ?></p>
+                    <?php endif; ?>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <small style="color: #7f8c8d;">Stock Available</small>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #2c3e50;"><?php echo SafeOutput::text($product['stock']); ?> items</div>
+                    </div>
+
+                    <div class="price">¥<?php echo SafeOutput::text($product['price']); ?></div>
+
+                    <form method="get" action="choose_pay.php" style="margin-bottom: 30px;">
+                        <input type="hidden" name="id" value="<?php echo SafeOutput::attr($product['id']); ?>">
+                        <input type="hidden" name="price" value="<?php echo SafeOutput::attr($product['price']); ?>">
+
+                        <div class="mb-3">
+                            <label class="form-label"><i class="fas fa-user"></i> Full Name</label>
+                            <input type="text" name="nickname" class="form-control" placeholder="Enter your name" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label"><i class="fas fa-envelope"></i> Email</label>
+                            <input type="email" name="email" class="form-control" placeholder="Enter your email" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label"><i class="fas fa-boxes"></i> Quantity</label>
+                            <div class="qty-control">
+                                <button type="button" class="qty-btn" onclick="document.getElementById('quantity').value = Math.max(1, parseInt(document.getElementById('quantity').value)-1)">−</button>
+                                <input type="number" id="quantity" name="quantity" class="form-control" style="width: 80px; text-align: center;" value="1" min="1" max="<?php echo SafeOutput::attr($product['stock']); ?>" required>
+                                <button type="button" class="qty-btn" onclick="document.getElementById('quantity').value = Math.min(<?php echo (int)$product['stock']; ?>, parseInt(document.getElementById('quantity').value)+1)">+</button>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="buy-button"><i class="fas fa-shopping-cart"></i> Proceed to Checkout</button>
+                    </form>
+
+                    <?php if (isset($product['detail']) && !empty(trim($product['detail']))): ?>
+                        <div style="margin-top: 30px; padding-top: 30px; border-top: 1px solid #ecf0f1;">
+                            <h3 style="font-size: 1.1rem; font-weight: 700; color: #2c3e50; margin-bottom: 15px;"><i class="fas fa-info-circle"></i> Product Details</h3>
+                            <div style="color: #555; line-height: 1.8;">
+                                <?php
+                                $detail = trim($product['detail']);
+                                if ($detail === strip_tags($detail)) {
+                                    $detail = preg_replace('/(https?:\/\/[^\s]+?\.(jpg|jpeg|png|gif))/i', '<img src="$1" style="max-width:100%; margin:10px 0; border-radius:8px;" alt="Product image">', $detail);
+                                    echo nl2br($detail);
+                                } else {
+                                    echo $detail;
+                                }
+                                ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
     </div>
-    <!-- 右侧下单区域 -->
-    <div class="col-md-6">
-      <div class="card info-section flex-fill">
-        <div class="card-body">
-          <!-- 上部：显示价格与库存 -->
-          <div class="product-info">
-            <p class="lead">价格：￥<?php echo SafeOutput::text($product['price']); ?></p>
-            <p>库存：<?php echo SafeOutput::text($product['stock']); ?></p>
-          </div>
-          <hr>
-          <!-- 下部：下单表单 -->
-          <!-- 修改表单的 action 为 choose_pay.php 以便用户选择支付方式 -->
-          <div class="buyer-form">
-            <form method="get" action="choose_pay.php">
-              <!-- 传递必要参数 -->
-              <input type="hidden" name="id" value="<?php echo SafeOutput::attr($product['id']); ?>">
-              <input type="hidden" name="price" value="<?php echo SafeOutput::attr($product['price']); ?>">
-              <div class="form-group">
-                <label for="nickname">姓名/昵称 <span class="text-danger">*</span></label>
-                <input type="text" name="nickname" id="nickname" class="form-control" placeholder="请输入您的姓名或昵称" required>
-              </div>
-              <div class="form-group">
-                <label for="email">邮箱 <span class="text-danger">*</span></label>
-                <input type="email" name="email" id="email" class="form-control" placeholder="请输入您的邮箱" required>
-              </div>
-              <div class="form-group">
-                <label for="quantity">数量</label>
-                <input type="number" name="quantity" id="quantity" class="form-control" value="1" min="1" max="<?php echo SafeOutput::attr($product['stock']); ?>" required>
-              </div>
-              <button type="submit" class="btn btn-success btn-lg btn-block">立即购买</button>
-            </form>
-          </div>
-        </div><!-- card-body -->
-      </div><!-- card -->
-    </div>
-  </div><!-- row -->
-  
-  <!-- 详细介绍 -->
-  <div class="product-detail">
-    <h3>详细介绍</h3>
-    <?php
-      if (isset($product['detail']) && !empty(trim($product['detail']))) {
-          $detail = trim($product['detail']);
-          // 如果内容中不包含 HTML 标签，则自动将图片链接转换为 <img> 标签
-          if ($detail === strip_tags($detail)) {
-              $pattern = '/(https?:\/\/[^\s]+?\.(jpg|jpeg|png|gif))/i';
-              $detail = preg_replace($pattern, '<img src="$1" alt="详细介绍图片" class="detail-img">', $detail);
-              echo nl2br($detail);
-          } else {
-              echo $detail;
-          }
-      } else {
-          echo "<p>暂无详细介绍。</p>";
-      }
-    ?>
-  </div>
-</div>
-<!-- 引入 jQuery 和 Bootstrap JS -->
-<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.bundle.min.js"></script>
+
+    <footer>
+        <p>&copy; 2025 CloudShop. All rights reserved. | Powered by CloudShop Platform</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
