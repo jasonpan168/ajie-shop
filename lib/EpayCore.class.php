@@ -92,8 +92,8 @@ class EpayCore
     private function getHttpResponse($url, $post = false, $timeout = 10){
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
         $httpheader[] = "Accept: */*";
         $httpheader[] = "Accept-Language: zh-CN,zh;q=0.8";
         $httpheader[] = "Connection: close";
