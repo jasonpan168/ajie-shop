@@ -59,10 +59,33 @@ $merchant_key_local = $merchant_api_key;
 $localSign = getLocalSign($result, $merchant_key_local);
 file_put_contents($logFile, "Local sign: $localSign, WeChat sign: $wechatSign\n", FILE_APPEND);
 
-// 验证签名和支付状态
-if ($localSign == $wechatSign && $result['return_code'] == 'SUCCESS' && $result['result_code'] == 'SUCCESS') {
+// 验证签名和支付状态（使用 === 和统一大小写）
+if (strtoupper($localSign) === strtoupper($wechatSign) && $result['return_code'] == 'SUCCESS' && $result['result_code'] == 'SUCCESS') {
     $order_no = $result['out_trade_no'];
     $total_fee = $result['total_fee']; // 单位：分
+
+    // 检查订单是否已处理（幂等性检查，防止重复处理）
+    $stmtCheck = $pdo->prepare("SELECT id, status, amount FROM orders WHERE order_no = ?");
+    $stmtCheck->execute([$order_no]);
+    $existingOrder = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+
+    if (!$existingOrder) {
+        file_put_contents($logFile, "Error: Order $order_no not found\n", FILE_APPEND);
+        exit;
+    }
+
+    // 如果订单已支付，忽略重复通知
+    if ($existingOrder['status'] === 'paid' || $existingOrder['status'] === 'shipped' || $existingOrder['status'] === 'completed') {
+        file_put_contents($logFile, "Warning: Duplicate payment notification for order $order_no (already $existingOrder[status])\n", FILE_APPEND);
+        exit;
+    }
+
+    // 验证支付金额是否匹配（防止支付金额被篡改）
+    $expected_amount_cents = (int)($existingOrder['amount'] * 100);
+    if ((int)$total_fee !== $expected_amount_cents) {
+        file_put_contents($logFile, "Error: Amount mismatch for order $order_no. Expected: $expected_amount_cents, Got: $total_fee\n", FILE_APPEND);
+        exit;
+    }
 
     // 从 attach 参数解析 product_id, quantity, nickname, email
     $attach = isset($result['attach']) ? json_decode($result['attach'], true) : [];

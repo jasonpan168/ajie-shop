@@ -26,7 +26,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->execute([$username]);
     $admin = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($admin && password_verify($password, $admin['password'])) {
+        // 防止会话固定攻击
+        session_regenerate_id(true);
         $_SESSION['admin'] = $admin['id'];
+        $_SESSION['login_time'] = time();
+        $_SESSION['ip_address'] = $_SERVER['REMOTE_ADDR'];
         header("Location: dashboard.php");
         exit;
     } else {

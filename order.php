@@ -55,8 +55,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $email      = trim($_GET['email']);
     $quantity   = intval($_GET['quantity']);
     $price      = floatval($_GET['price']);
+
+    // 验证商品存在且价格匹配（防止价格篡改）
+    $stmt = $pdo->prepare("SELECT id, price, stock FROM products WHERE id = ?");
+    $stmt->execute([$product_id]);
+    $product_check = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$product_check) {
+        die("商品不存在");
+    }
+    // 验证价格是否被篡改（允许小数误差）
+    if (abs($product_check['price'] - $price) > 0.01) {
+        die("商品价格异常，请重新选择商品");
+    }
+    // 使用数据库中的真实价格
+    $price = $product_check['price'];
     $amount     = $price * $quantity; // 总金额（单位元）
-    
+
     // 处理优惠码
     $coupon_id = isset($_GET['coupon_id']) ? intval($_GET['coupon_id']) : 0;
     $coupon_code = isset($_GET['coupon_code_hidden']) ? trim($_GET['coupon_code_hidden']) : '';
@@ -80,16 +94,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         die("姓名/昵称和邮箱为必填项。");
     }
 
-    // 检查产品是否存在及库存
+    // 检查库存（产品已在之前验证过）
+    if ($quantity > $product_check['stock']) {
+        die("库存不足");
+    }
+
+    // 获取完整的产品信息用于数据库插入
     $stmt = $pdo->prepare("SELECT * FROM products WHERE id = ?");
     $stmt->execute([$product_id]);
     $product = $stmt->fetch(PDO::FETCH_ASSOC);
-    if (!$product) {
-        die("产品不存在");
-    }
-    if ($quantity > $product['stock']) {
-        die("库存不足");
-    }
 
     // 生成订单号（确保唯一）
     $order_no = date("YmdHis") . rand(1000, 9999);
