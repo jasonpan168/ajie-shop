@@ -45,7 +45,7 @@ $price    = isset($_GET['price']) ? floatval($_GET['price']) : 0;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Select Payment Method - AjieShop</title>
+    <title>选择支付方式 - AjieShop</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -78,28 +78,28 @@ $price    = isset($_GET['price']) ? floatval($_GET['price']) : 0;
 </head>
 <body>
     <div class="payment-container">
-        <a href="/" class="back-link"><i class="fas fa-arrow-left"></i> Back to Home</a>
+        <a href="/" class="back-link"><i class="fas fa-arrow-left"></i> 返回首页</a>
         
-        <h1 class="payment-title"><i class="fas fa-credit-card"></i> Payment Method</h1>
-        <p class="payment-subtitle">Select your preferred payment method</p>
+        <h1 class="payment-title"><i class="fas fa-credit-card"></i> 选择支付方式</h1>
+        <p class="payment-subtitle">选择您喜欢的支付方式</p>
 
         <!-- 订单信息 -->
         <div class="order-info">
             <div class="order-row">
-                <span class="order-label">Product ID:</span>
+                <span class="order-label">产品ID：</span>
                 <span class="order-value"><?php echo SafeOutput::text($id); ?></span>
             </div>
             <div class="order-row">
-                <span class="order-label">Quantity:</span>
+                <span class="order-label">购买数量：</span>
                 <span class="order-value"><?php echo SafeOutput::text($quantity); ?></span>
             </div>
             <div class="order-row">
-                <span class="order-label">Unit Price:</span>
+                <span class="order-label">单价：</span>
                 <span class="order-value">¥<?php echo SafeOutput::text($price); ?></span>
             </div>
             <hr style="margin: 10px 0;">
             <div class="order-row">
-                <span class="order-label" style="font-size: 1.1rem;">Total Amount:</span>
+                <span class="order-label" style="font-size: 1.1rem;">应付金额：</span>
                 <span class="amount-total">¥<?php echo number_format($price * $quantity, 2); ?></span>
             </div>
         </div>
@@ -119,10 +119,10 @@ $price    = isset($_GET['price']) ? floatval($_GET['price']) : 0;
                     <!-- 没有任何支付方式配置 -->
                     <div class="alert alert-warning">
                         <i class="fas fa-exclamation-triangle"></i>
-                        <strong>No Payment Methods Available</strong><br>
-                        The store hasn't configured any payment methods yet. Please contact the administrator.
+                        <strong>暂无支付方式</strong><br>
+                        商店管理员还未配置任何支付方式。请联系管理员。
                         <div class="config-btn">
-                            <a href="admin/login.php" class="btn btn-sm btn-primary">Go to Admin Panel</a>
+                            <a href="admin/login.php" class="btn btn-sm btn-primary">进入后台</a>
                         </div>
                     </div>
 
@@ -134,8 +134,8 @@ $price    = isset($_GET['price']) ? floatval($_GET['price']) : 0;
                         <div>
                             <input type="radio" name="method_choice" value="epay" id="method_epay">
                             <label for="method_epay" style="cursor: pointer; margin: 0;">
-                                <div class="payment-method-title"><i class="fas fa-money-bill-wave"></i> Easy Payment (E-Pay)</div>
-                                <div class="payment-method-desc">Support Alipay, WeChat Pay, USDT</div>
+                                <div class="payment-method-title"><i class="fas fa-money-bill-wave"></i> 易支付</div>
+                                <div class="payment-method-desc">支持支付宝、微信、USDT</div>
                             </label>
                         </div>
                     </div>
@@ -147,8 +147,8 @@ $price    = isset($_GET['price']) ? floatval($_GET['price']) : 0;
                         <div>
                             <input type="radio" name="method_choice" value="wechat" id="method_wechat">
                             <label for="method_wechat" style="cursor: pointer; margin: 0;">
-                                <div class="payment-method-title"><i class="fab fa-weixin"></i> WeChat Official Payment</div>
-                                <div class="payment-method-desc">Direct WeChat payment integration</div>
+                                <div class="payment-method-title"><i class="fab fa-weixin"></i> 微信官方支付</div>
+                                <div class="payment-method-desc">安全快捷的微信支付</div>
                             </label>
                         </div>
                     </div>
@@ -157,12 +157,12 @@ $price    = isset($_GET['price']) ? floatval($_GET['price']) : 0;
                     <!-- 提示信息 -->
                     <div class="alert alert-info mt-4">
                         <i class="fas fa-info-circle"></i>
-                        Your information is secure. We never store your payment details.
+                        您的信息是安全的。我们不会保存任何支付详情。
                     </div>
 
                     <!-- 提交按钮 -->
                     <button type="submit" class="payment-btn" id="submitBtn" disabled>
-                        <i class="fas fa-lock"></i> Proceed to Payment
+                        <i class="fas fa-lock"></i> 进行支付
                     </button>
 
                 <?php endif; ?>
@@ -173,21 +173,17 @@ $price    = isset($_GET['price']) ? floatval($_GET['price']) : 0;
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function selectPayment(method, element) {
-            // 取消其他选择
             document.querySelectorAll('.payment-method').forEach(el => {
                 el.classList.remove('active');
             });
             
-            // 选中当前方法
             element.classList.add('active');
             document.getElementById('payment_method').value = method;
             document.getElementById('submitBtn').disabled = false;
             
-            // 选中对应的 radio
             document.getElementById('method_' + method).checked = true;
         }
 
-        // 设置默认选项
         document.addEventListener('DOMContentLoaded', function() {
             const radioButtons = document.querySelectorAll('input[name="method_choice"]');
             if (radioButtons.length > 0) {
@@ -195,7 +191,6 @@ $price    = isset($_GET['price']) ? floatval($_GET['price']) : 0;
             }
         });
 
-        // 表单提交
         document.getElementById('payForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const method = document.getElementById('payment_method').value;
@@ -203,8 +198,10 @@ $price    = isset($_GET['price']) ? floatval($_GET['price']) : 0;
             
             if (method === 'wechat') {
                 form.action = 'order.php';
+                form.method = 'GET';
             } else if (method === 'epay') {
                 form.action = 'rainbow_pay.php';
+                form.method = 'GET';
             }
             
             form.submit();
