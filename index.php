@@ -409,9 +409,7 @@ require_once 'lib/SafeOutput.php';
                     <div class="product-card">
                         <div class="product-image">
                             <?php if (!empty($product['cover'])): ?>
-                                <img src="<?php echo SafeOutput::attr($product['cover']); ?>" alt="<?php echo SafeOutput::attr($product['title']); ?>">
-                            <?php else: ?>
-                                <span style="font-size: 4rem;">📦</span>
+                                <img src="<?php echo SafeOutput::attr($product['cover']); ?>" alt="<?php echo SafeOutput::attr($product['title']); ?>" onerror="this.style.display='none'">
                             <?php endif; ?>
                         </div>
                         <div class="product-info">
