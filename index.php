@@ -428,39 +428,6 @@ require_once 'lib/SafeOutput.php';
                     <?php
                 }
 
-                // 如果没有产品，显示示例
-                if (!$has_products) {
-                    for ($i = 1; $i <= 6; $i++) {
-                        $products = [
-                            ['title' => 'Premium Software', 'desc' => 'Professional tools for your business', 'price' => '199.99'],
-                            ['title' => 'Digital Course', 'desc' => 'Complete learning experience', 'price' => '49.99'],
-                            ['title' => 'Templates Pack', 'desc' => 'Ready-to-use design templates', 'price' => '29.99'],
-                            ['title' => 'API Access', 'desc' => '12-month unlimited access', 'price' => '299.99'],
-                            ['title' => 'E-Book Bundle', 'desc' => '50+ industry guides', 'price' => '39.99'],
-                            ['title' => 'Plugin Suite', 'desc' => 'Extend your platform', 'price' => '79.99']
-                        ];
-                        $p = $products[$i-1];
-                        ?>
-                        <div class="product-card">
-                            <div class="product-image">
-                                <span style="font-size: 4rem;">
-                                    <?php echo ['🎯', '📚', '🎨', '⚙️', '📖', '🔌'][$i-1]; ?>
-                                </span>
-                            </div>
-                            <div class="product-info">
-                                <h3 class="product-name"><?php echo $p['title']; ?></h3>
-                                <p class="product-desc"><?php echo $p['desc']; ?></p>
-                                <div class="product-footer">
-                                    <span class="product-price">¥<?php echo $p['price']; ?></span>
-                                    <button class="product-buy" onclick="alert('Please add products in admin panel')">
-                                        <i class="fas fa-shopping-cart"></i> Buy
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <?php
-                    }
-                }
                 ?>
             </div>
         </section>

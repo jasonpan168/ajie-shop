@@ -25,7 +25,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt = $pdo->prepare("SELECT * FROM admin WHERE username = ?");
     $stmt->execute([$username]);
     $admin = $stmt->fetch(PDO::FETCH_ASSOC);
-    if ($admin && password_verify($password, $admin['password'])) {
+    // 支持 MD5 和 password_hash 两种密码格式
+    $password_match = false;
+    if ($admin) {
+        // 尝试 password_hash 验证
+        if (password_verify($password, $admin['password'])) {
+            $password_match = true;
+        }
+        // 尝试 MD5 验证（向后兼容）
+        elseif (md5($password) === $admin['password']) {
+            $password_match = true;
+        }
+    }
+    if ($admin && $password_match) {
         // 防止会话固定攻击
         session_regenerate_id(true);
         $_SESSION['admin'] = $admin['id'];

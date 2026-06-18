@@ -28,11 +28,11 @@ define('DEBUG_MODE', false);
 $config = array();
 $config['installed'] = true; // 如果能执行到这里，说明系统已经安装
 
-// 从环境变量获取数据库配置，如果没有则使用默认值
-$db_host = getenv('DB_HOST') ?: '在此填写数据库主机地址';
-$db_name = getenv('DB_NAME') ?: '在此填写数据库名称';
-$db_user = getenv('DB_USER') ?: '在此填写数据库用户名';
-$db_pass = getenv('DB_PASS') ?: '在此填写数据库密码';
+// 从环境变量或 .env 文件获取数据库配置
+$db_host = getenv('DB_HOST') ?: '127.0.0.1';
+$db_name = getenv('DB_NAME') ?: 'ajie_shop';
+$db_user = getenv('DB_USER') ?: 'root';
+$db_pass = getenv('DB_PASS') !== false ? getenv('DB_PASS') : '';
 
 // 只在系统已安装的情况下建立数据库连接
 if (!defined('INSTALLING')) {
