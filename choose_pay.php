@@ -11,12 +11,14 @@ $stmt = $pdo->query("SELECT * FROM wechat_config LIMIT 1");
 $wechat_config = $stmt->fetch(PDO::FETCH_ASSOC);
 
 // 检查配置是否完整
-$epay_ready = $epay_config && $epay_config['enabled'] && 
+$epay_ready = $epay_config &&
+              isset($epay_config['enabled']) && $epay_config['enabled'] &&
               (!empty($epay_config['alipay_enabled']) || !empty($epay_config['wxpay_enabled']) || !empty($epay_config['usdt_enabled']));
 
-$wechat_ready = $wechat_config && $wechat_config['enabled'] && 
-                !empty($wechat_config['appid']) && 
-                !empty($wechat_config['mch_id']) && 
+$wechat_ready = $wechat_config &&
+                isset($wechat_config['enabled']) && $wechat_config['enabled'] &&
+                !empty($wechat_config['appid']) &&
+                !empty($wechat_config['mch_id']) &&
                 !empty($wechat_config['api_key']) &&
                 strpos($wechat_config['appid'], '填写') === false &&
                 strpos($wechat_config['mch_id'], '填写') === false &&
