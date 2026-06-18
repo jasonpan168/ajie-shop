@@ -3,14 +3,14 @@ require_once 'db.php';
 require_once 'lib/SafeOutput.php';
 
 if (!isset($_GET['id'])) {
-    die("Product not found");
+    die("产品不存在");
 }
 $id = intval($_GET['id']);
 $stmt = $pdo->prepare("SELECT * FROM products WHERE id = ?");
 $stmt->execute([$id]);
 $product = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$product) {
-    die("Product not found");
+    die("产品不存在");
 }
 ?>
 <!DOCTYPE html>
@@ -35,7 +35,7 @@ if (!$product) {
         .back-link a { color: #667eea; text-decoration: none; font-weight: 600; }
         .back-link a:hover { color: #764ba2; }
         
-        .product-container { max-width: 1200px; margin: 40px auto; display: grid; grid-template-columns: 2fr 1fr; gap: 40px; padding: 0 20px; }
+        .product-container { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr; gap: 40px; padding: 0 20px; }
         
         .product-main { background: white; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.08); overflow: hidden; padding: 50px; }
         
@@ -89,7 +89,7 @@ if (!$product) {
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="/"><i class="fas fa-home"></i> Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/"><i class="fas fa-home"></i> 首页</a></li>
                 </ul>
             </div>
         </div>
@@ -97,7 +97,7 @@ if (!$product) {
 
     <div class="container-fluid">
         <div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
-            <div class="back-link"><a href="/"><i class="fas fa-arrow-left"></i> Back to Products</a></div>
+            <div class="back-link"><a href="/"><i class="fas fa-arrow-left"></i> 返回产品列表</a></div>
         </div>
     </div>
 
@@ -123,12 +123,12 @@ if (!$product) {
             <!-- 产品详细介绍 -->
             <?php if (isset($product['detail']) && !empty(trim($product['detail']))): ?>
                 <div style="margin-top: 40px;">
-                    <h2 class="product-detail-title"><i class="fas fa-info-circle"></i> Product Details</h2>
+                    <h2 class="product-detail-title"><i class="fas fa-info-circle"></i> 产品详情</h2>
                     <div class="product-detail-content">
                         <?php
                         $detail = trim($product['detail']);
                         if ($detail === strip_tags($detail)) {
-                            $detail = preg_replace('/(https?:\/\/[^\s]+?\.(jpg|jpeg|png|gif))/i', '<img src="$1" style="max-width:100%; margin:10px 0; border-radius:8px;" alt="Product image">', $detail);
+                            $detail = preg_replace('/(https?:\/\/[^\s]+?\.(jpg|jpeg|png|gif))/i', '<img src="$1" style="max-width:100%; margin:10px 0; border-radius:8px;" alt="产品图片">', $detail);
                             echo nl2br($detail);
                         } else {
                             echo $detail;
@@ -144,8 +144,8 @@ if (!$product) {
             <div class="purchase-card">
                 <!-- 库存 -->
                 <div class="stock-info">
-                    <div class="stock-label">Available Stock</div>
-                    <div class="stock-value"><?php echo SafeOutput::text($product['stock']); ?> items</div>
+                    <div class="stock-label">库存</div>
+                    <div class="stock-value"><?php echo SafeOutput::text($product['stock']); ?> 件</div>
                 </div>
 
                 <!-- 购买表单 -->
@@ -154,17 +154,17 @@ if (!$product) {
                     <input type="hidden" name="price" value="<?php echo SafeOutput::attr($product['price']); ?>">
 
                     <div class="mb-3">
-                        <label class="form-label" style="font-weight: 600; color: #2c3e50;"><i class="fas fa-user"></i> Full Name</label>
-                        <input type="text" name="nickname" class="form-control" placeholder="Your name" required>
+                        <label class="form-label" style="font-weight: 600; color: #2c3e50;"><i class="fas fa-user"></i> 您的名字</label>
+                        <input type="text" name="nickname" class="form-control" placeholder="请输入您的名字" required>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label" style="font-weight: 600; color: #2c3e50;"><i class="fas fa-envelope"></i> Email</label>
-                        <input type="email" name="email" class="form-control" placeholder="your@email.com" required>
+                        <label class="form-label" style="font-weight: 600; color: #2c3e50;"><i class="fas fa-envelope"></i> 邮箱</label>
+                        <input type="email" name="email" class="form-control" placeholder="请输入您的邮箱" required>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label" style="font-weight: 600; color: #2c3e50;"><i class="fas fa-boxes"></i> Quantity</label>
+                        <label class="form-label" style="font-weight: 600; color: #2c3e50;"><i class="fas fa-boxes"></i> 购买数量</label>
                         <div class="qty-control">
                             <button type="button" class="qty-btn" onclick="document.getElementById('quantity').value = Math.max(1, parseInt(document.getElementById('quantity').value)-1)">−</button>
                             <input type="number" id="quantity" name="quantity" class="form-control" style="width: 80px; text-align: center;" value="1" min="1" max="<?php echo SafeOutput::attr($product['stock']); ?>" required>
@@ -172,16 +172,14 @@ if (!$product) {
                         </div>
                     </div>
 
-                    <button type="submit" class="buy-button">
-                        <i class="fas fa-shopping-cart"></i> Proceed to Checkout
-                    </button>
+                    <button type="submit" class="buy-button"><i class="fas fa-shopping-cart"></i> 去结算</button>
                 </form>
             </div>
         </div>
     </div>
 
     <footer>
-        <p>&copy; 2025 CloudShop. All rights reserved. | Powered by CloudShop Platform</p>
+        <p>&copy; 2025 CloudShop. 保留所有权利。| 由 CloudShop 平台驱动</p>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

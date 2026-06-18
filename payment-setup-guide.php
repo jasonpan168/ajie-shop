@@ -9,7 +9,7 @@ $error_type = isset($_GET['type']) ? $_GET['type'] : 'general';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Payment Setup Required - CloudShop</title>
+    <title>支付设置 - CloudShop</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -214,59 +214,59 @@ $error_type = isset($_GET['type']) ? $_GET['type'] : 'general';
             <div class="setup-icon">
                 <i class="fas fa-cog"></i>
             </div>
-            <h1 class="setup-title">Setup Required</h1>
-            <p class="setup-subtitle">Payment method needs to be configured</p>
+            <h1 class="setup-title">需要设置</h1>
+            <p class="setup-subtitle">支付方式尚未配置</p>
         </div>
 
         <!-- Body -->
         <div class="setup-body">
             <div class="setup-message">
-                <strong><i class="fas fa-info-circle"></i> Payment Not Available</strong><br>
-                The store admin hasn't configured payment methods yet. This is a quick 5-minute setup!
+                <strong><i class="fas fa-info-circle"></i> 支付功能未启用</strong><br>
+                店铺管理员还没有配置支付方式。这是一个简单的5分钟设置！
             </div>
 
             <h3 style="color: #2c3e50; margin-bottom: 25px; font-weight: 700;">
-                <i class="fas fa-graduation-cap"></i> How to Enable Payments
+                <i class="fas fa-graduation-cap"></i> 如何启用支付
             </h3>
 
             <div class="setup-steps">
                 <div class="setup-step">
                     <div class="step-number">1</div>
                     <div class="step-content">
-                        <h4>Open Admin Panel</h4>
-                        <p>Visit <code>/admin/</code> and login with admin credentials</p>
+                        <h4>打开后台管理</h4>
+                        <p>访问 <code>/admin/</code> 并使用管理员账号登录</p>
                     </div>
                 </div>
 
                 <div class="setup-step">
                     <div class="step-number">2</div>
                     <div class="step-content">
-                        <h4>Choose Payment Provider</h4>
-                        <p>Select either WeChat Official Payment or E-Pay (supports Alipay, WeChat, USDT)</p>
+                        <h4>选择支付方式</h4>
+                        <p>选择微信官方支付或易支付（支持支付宝、微信、USDT）</p>
                     </div>
                 </div>
 
                 <div class="setup-step">
                     <div class="step-number">3</div>
                     <div class="step-content">
-                        <h4>Fill in Credentials</h4>
-                        <p>Enter your payment provider credentials: App ID, Merchant ID, API Key</p>
+                        <h4>填入凭证</h4>
+                        <p>输入您的支付商户凭证：App ID、商户号、API密钥</p>
                     </div>
                 </div>
 
                 <div class="setup-step">
                     <div class="step-number">4</div>
                     <div class="step-content">
-                        <h4>Enable & Save</h4>
-                        <p>Check the "Enable" checkbox and save your configuration</p>
+                        <h4>启用并保存</h4>
+                        <p>勾选"启用"复选框，然后保存配置</p>
                     </div>
                 </div>
 
                 <div class="setup-step">
                     <div class="step-number">5</div>
                     <div class="step-content">
-                        <h4>Ready to Sell!</h4>
-                        <p>Payments are now live and customers can complete purchases</p>
+                        <h4>开始销售！</h4>
+                        <p>支付功能已上线，客户可以完成购买</p>
                     </div>
                 </div>
             </div>
@@ -274,26 +274,26 @@ $error_type = isset($_GET['type']) ? $_GET['type'] : 'general';
             <div class="setup-divider"></div>
 
             <h3 style="color: #2c3e50; margin-bottom: 20px; font-weight: 700;">
-                <i class="fas fa-lightning-bolt"></i> Quick Setup Options
+                <i class="fas fa-lightning-bolt"></i> 快速设置选项
             </h3>
 
             <div class="feature-list">
                 <div class="feature-item">
                     <div class="feature-icon">💳</div>
                     <div class="feature-text">
-                        <strong>WeChat Official Payment</strong> - Direct integration with WeChat Pay (for China)
+                        <strong>微信官方支付</strong> - 直接集成微信支付（适用于中国）
                     </div>
                 </div>
                 <div class="feature-item">
                     <div class="feature-icon">🌍</div>
                     <div class="feature-text">
-                        <strong>Easy Payment (E-Pay)</strong> - Supports Alipay, WeChat, USDT (flexible & global)
+                        <strong>易支付</strong> - 支持支付宝、微信、USDT（灵活且全球通用）
                     </div>
                 </div>
                 <div class="feature-item">
                     <div class="feature-icon">⚡</div>
                     <div class="feature-text">
-                        <strong>Instant Setup</strong> - Configuration takes less than 5 minutes
+                        <strong>极速设置</strong> - 只需5分钟配置就能启用
                     </div>
                 </div>
             </div>
@@ -302,15 +302,15 @@ $error_type = isset($_GET['type']) ? $_GET['type'] : 'general';
 
             <div class="setup-buttons">
                 <a href="/admin/login.php" class="setup-btn setup-btn-primary">
-                    <i class="fas fa-cog"></i> Admin Panel
+                    <i class="fas fa-cog"></i> 后台管理
                 </a>
                 <a href="/" class="setup-btn setup-btn-secondary">
-                    <i class="fas fa-home"></i> Home
+                    <i class="fas fa-home"></i> 首页
                 </a>
             </div>
 
             <p style="text-align: center; color: #7f8c8d; margin-top: 20px; font-size: 0.9rem;">
-                <i class="fas fa-lock"></i> Payment setup is secure and encrypted
+                <i class="fas fa-lock"></i> 支付设置是加密和安全的
             </p>
         </div>
     </div>

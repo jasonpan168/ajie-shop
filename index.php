@@ -14,7 +14,7 @@ require_once 'lib/SafeOutput.php';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CloudShop - Modern Digital Products Store</title>
+    <title>CloudShop - 数字产品商城</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -379,9 +379,9 @@ require_once 'lib/SafeOutput.php';
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="#products"><i class="fas fa-box"></i> Products</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#query"><i class="fas fa-search"></i> Check Order</a></li>
-                    <li class="nav-item"><a class="nav-link" href="admin/login.php"><i class="fas fa-lock"></i> Admin</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#products"><i class="fas fa-box"></i> 产品</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#query"><i class="fas fa-search"></i> 订单查询</a></li>
+                    <li class="nav-item"><a class="nav-link" href="admin/login.php"><i class="fas fa-lock"></i> 后台</a></li>
                 </ul>
             </div>
         </div>
@@ -389,16 +389,16 @@ require_once 'lib/SafeOutput.php';
 
     <!-- 英雄区域 -->
     <section class="hero-section">
-        <h1>Welcome to CloudShop</h1>
-        <p>Discover premium digital products at unbeatable prices</p>
-        <a href="#products" class="hero-cta">Shop Now</a>
+        <h1>欢迎来到 CloudShop</h1>
+        <p>发现优质数字产品，以最优价格享受</p>
+        <a href="#products" class="hero-cta">立即购买</a>
     </section>
 
     <!-- 主内容 -->
     <div class="main-container">
         <!-- 商品列表 -->
         <section id="products">
-            <h2 class="section-title">Featured Products</h2>
+            <h2 class="section-title">热门产品</h2>
             <div class="products-grid">
                 <?php
                 $stmt = $pdo->query("SELECT * FROM products WHERE status = 1 ORDER BY sort_order ASC LIMIT 12");
@@ -420,29 +420,28 @@ require_once 'lib/SafeOutput.php';
                             <div class="product-footer">
                                 <span class="product-price">¥<?php echo SafeOutput::text($product['price']); ?></span>
                                 <a href="product.php?id=<?php echo SafeOutput::attr($product['id']); ?>" class="product-buy">
-                                    <i class="fas fa-shopping-cart"></i> Buy
+                                    <i class="fas fa-shopping-cart"></i> 购买
                                 </a>
                             </div>
                         </div>
                     </div>
                     <?php
                 }
-
                 ?>
             </div>
         </section>
 
         <!-- 订单查询 -->
         <section id="query" class="query-section">
-            <h3><i class="fas fa-search"></i> Check Your Order Status</h3>
+            <h3><i class="fas fa-search"></i> 查询订单状态</h3>
             <form method="get" action="order_query.php" class="query-form">
                 <input
                     type="text"
                     name="order_no"
-                    placeholder="Enter your order number..."
+                    placeholder="输入订单号查询..."
                     required
                 >
-                <button type="submit"><i class="fas fa-search"></i> Search</button>
+                <button type="submit"><i class="fas fa-search"></i> 查询</button>
             </form>
         </section>
     </div>
@@ -452,29 +451,29 @@ require_once 'lib/SafeOutput.php';
         <div class="footer-content">
             <div class="footer-section">
                 <h4><i class="fas fa-shopping-bag"></i> CloudShop</h4>
-                <p>Your trusted online marketplace for premium digital products and services.</p>
+                <p>您信赖的在线数字产品商城，为您提供优质的产品和服务。</p>
             </div>
             <div class="footer-section">
-                <h4>Quick Links</h4>
-                <p><a href="#products">Products</a></p>
-                <p><a href="#query">Track Order</a></p>
-                <p><a href="admin/login.php">Admin Panel</a></p>
+                <h4>快速链接</h4>
+                <p><a href="#products">产品中心</a></p>
+                <p><a href="#query">订单查询</a></p>
+                <p><a href="admin/login.php">后台管理</a></p>
             </div>
             <div class="footer-section">
-                <h4>Information</h4>
-                <p><a href="#">About Us</a></p>
-                <p><a href="#">Terms of Service</a></p>
-                <p><a href="#">Privacy Policy</a></p>
+                <h4>信息</h4>
+                <p><a href="#">关于我们</a></p>
+                <p><a href="#">服务条款</a></p>
+                <p><a href="#">隐私政策</a></p>
             </div>
             <div class="footer-section">
-                <h4>Support</h4>
-                <p><a href="#">Contact Us</a></p>
-                <p><a href="#">FAQ</a></p>
-                <p><a href="#">Help Center</a></p>
+                <h4>帮助</h4>
+                <p><a href="#">联系我们</a></p>
+                <p><a href="#">常见问题</a></p>
+                <p><a href="#">帮助中心</a></p>
             </div>
         </div>
         <div class="footer-divider">
-            <p>&copy; 2025 CloudShop. All rights reserved. | Powered by CloudShop Platform</p>
+            <p>&copy; 2025 CloudShop. 保留所有权利。| 由 CloudShop 平台驱动</p>
         </div>
     </footer>
 
