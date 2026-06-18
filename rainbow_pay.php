@@ -21,7 +21,22 @@ require_once __DIR__ . '/lib/epay.config.php';
 require_once __DIR__ . '/lib/EpayCore.class.php';
 require_once __DIR__ . '/clean_orders.php';
 
+// 检查易支付配置
+$stmt = $pdo->query("SELECT * FROM epay_config LIMIT 1");
+$epay_config = $stmt->fetch(PDO::FETCH_ASSOC);
 
+$epay_ready = $epay_config && $epay_config['enabled'] &&
+              (!empty($epay_config['alipay_enabled']) ||
+               !empty($epay_config['wxpay_enabled']) ||
+               !empty($epay_config['usdt_enabled'])) &&
+              !empty($epay_config['api_url']) &&
+              !empty($epay_config['pid']) &&
+              !empty($epay_config['key']);
+
+if (!$epay_ready) {
+    header('Location: payment-setup-guide.php?type=epay');
+    exit;
+}
 
 // 获取客户端IP地址
 $ip = $_SERVER['REMOTE_ADDR'];

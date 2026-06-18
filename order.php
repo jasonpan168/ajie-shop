@@ -25,6 +25,23 @@ session_start();
 // 引入清理脚本
 require_once 'clean_orders.php';
 
+// 检查微信支付配置
+$stmt = $pdo->query("SELECT * FROM wechat_config LIMIT 1");
+$wechat_config = $stmt->fetch(PDO::FETCH_ASSOC);
+
+$wechat_ready = $wechat_config && $wechat_config['enabled'] &&
+                !empty($wechat_config['appid']) &&
+                !empty($wechat_config['mch_id']) &&
+                !empty($wechat_config['api_key']) &&
+                strpos($wechat_config['appid'], '填写') === false &&
+                strpos($wechat_config['mch_id'], '填写') === false &&
+                strpos($wechat_config['api_key'], '填写') === false;
+
+if (!$wechat_ready) {
+    header('Location: payment-setup-guide.php?type=wechat');
+    exit;
+}
+
 // 检查必填参数：产品 id, 买家昵称, 邮箱, 数量, 价格
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     // 获取真实IP地址
