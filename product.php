@@ -18,7 +18,7 @@ if (!$product) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo SafeOutput::text($product['title']); ?> - CloudShop</title>
+    <title><?php echo SafeOutput::text($product['title']); ?> - AjieShop</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -83,7 +83,7 @@ if (!$product) {
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
         <div class="container-fluid">
-            <a class="navbar-brand" href="/"><i class="fas fa-shopping-bag"></i> CloudShop</a>
+            <a class="navbar-brand" href="/"><i class="fas fa-shopping-bag"></i> AjieShop</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -179,7 +179,7 @@ if (!$product) {
     </div>
 
     <footer>
-        <p>&copy; 2025 CloudShop. 保留所有权利。| 由 CloudShop 平台驱动</p>
+        <p>&copy; 2025 AjieShop. 保留所有权利。| 由 AjieShop 平台驱动</p>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

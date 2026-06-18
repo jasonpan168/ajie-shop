@@ -1,0 +1,3 @@
+[2026-06-18 03:05:09] [INFO] User:GUEST IP:::1 | Action: Order Created | Target: 202606180305097790 | {"product_id":2,"email":"weijianao@gmail.com","amount":149.99,"ip":"::1","pay_type":"wxpay"}
+[2026-06-18 03:06:47] [INFO] User:GUEST IP:::1 | Action: Order Created | Target: 202606180306478092 | {"product_id":2,"email":"weijianao@gmail.com","amount":149.99,"ip":"::1","pay_type":"wxpay"}
+[2026-06-18 03:08:44] [INFO] User:GUEST IP:::1 | Action: Order Created | Target: 202606180308446822 | {"product_id":2,"email":"weijianao@gmail.com","amount":149.99,"ip":"::1","pay_type":"wxpay"}

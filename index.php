@@ -14,7 +14,7 @@ require_once 'lib/SafeOutput.php';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CloudShop - 数字产品商城</title>
+    <title>AjieShop - 数字产品商城</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -372,7 +372,7 @@ require_once 'lib/SafeOutput.php';
     <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
         <div class="container-fluid">
             <a class="navbar-brand" href="/">
-                <i class="fas fa-shopping-bag"></i> CloudShop
+                <i class="fas fa-shopping-bag"></i> AjieShop
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -389,7 +389,7 @@ require_once 'lib/SafeOutput.php';
 
     <!-- 英雄区域 -->
     <section class="hero-section">
-        <h1>欢迎来到 CloudShop</h1>
+        <h1>欢迎来到 AjieShop</h1>
         <p>发现优质数字产品，以最优价格享受</p>
         <a href="#products" class="hero-cta">立即购买</a>
     </section>
@@ -448,7 +448,7 @@ require_once 'lib/SafeOutput.php';
     <footer>
         <div class="footer-content">
             <div class="footer-section">
-                <h4><i class="fas fa-shopping-bag"></i> CloudShop</h4>
+                <h4><i class="fas fa-shopping-bag"></i> AjieShop</h4>
                 <p>您信赖的在线数字产品商城，为您提供优质的产品和服务。</p>
             </div>
             <div class="footer-section">
@@ -471,7 +471,7 @@ require_once 'lib/SafeOutput.php';
             </div>
         </div>
         <div class="footer-divider">
-            <p>&copy; 2025 CloudShop. 保留所有权利。| 由 CloudShop 平台驱动</p>
+            <p>&copy; 2025 AjieShop. 保留所有权利。| 由 AjieShop 平台驱动</p>
         </div>
     </footer>
 
