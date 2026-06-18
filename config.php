@@ -37,7 +37,7 @@ $db_pass = getenv('DB_PASS') ?: '在此填写数据库密码';
 // 只在系统已安装的情况下建立数据库连接
 if (!defined('INSTALLING')) {
     try {
-        $pdo = new PDO("mysql:host=$db_host;dbname=$db_name;charset=utf8", $db_user, $db_pass);
+        $pdo = new PDO("mysql:host=$db_host;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     } catch (PDOException $e) {
         die("数据库连接失败：" . $e->getMessage());

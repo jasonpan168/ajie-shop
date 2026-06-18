@@ -24,6 +24,7 @@ if (!file_exists(__DIR__ . '/install.lock')) {
 
 require_once 'config.php';
 require_once 'db.php';
+require_once 'lib/SafeOutput.php';
 ?>
 <!DOCTYPE html>
 <html lang="zh">
@@ -92,7 +93,7 @@ require_once 'db.php';
             $menus = $stmt->fetchAll(PDO::FETCH_ASSOC);
             if ($menus) {
               foreach ($menus as $menu) {
-                echo '<li class="nav-item"><a class="nav-link" href="'.htmlspecialchars($menu['url']).'">' . htmlspecialchars($menu['name']) . '</a></li>';
+                echo '<li class="nav-item"><a class="nav-link" href="'.SafeOutput::attr($menu['url']).'">' . SafeOutput::text($menu['name']) . '</a></li>';
               }
             } else {
                 // 如果没有菜单项，则显示默认菜单
@@ -126,12 +127,12 @@ require_once 'db.php';
       ?>
       <div class="col-md-4 col-sm-6 mb-4">
         <div class="card h-100">
-          <img src="<?php echo htmlspecialchars($product['cover']); ?>" class="card-img-top" alt="<?php echo htmlspecialchars($product['title']); ?>">
+          <img src="<?php echo SafeOutput::attr($product['cover']); ?>" class="card-img-top" alt="<?php echo SafeOutput::attr($product['title']); ?>">
           <div class="card-body">
-            <h5 class="card-title"><?php echo htmlspecialchars($product['title']); ?></h5>
-            <p class="card-text"><?php echo htmlspecialchars($product['description']); ?></p>
-            <p class="card-text font-weight-bold">价格: ￥<?php echo htmlspecialchars($product['price']); ?></p>
-            <a href="product.php?id=<?php echo $product['id']; ?>" class="btn btn-success">购买</a>
+            <h5 class="card-title"><?php echo SafeOutput::text($product['title']); ?></h5>
+            <p class="card-text"><?php echo SafeOutput::text($product['description']); ?></p>
+            <p class="card-text font-weight-bold">价格: ￥<?php echo SafeOutput::text($product['price']); ?></p>
+            <a href="product.php?id=<?php echo SafeOutput::attr($product['id']); ?>" class="btn btn-success">购买</a>
           </div>
         </div>
       </div>

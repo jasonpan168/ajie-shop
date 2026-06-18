@@ -17,6 +17,7 @@
  */
 
 require_once 'db.php';
+require_once 'lib/SafeOutput.php';
 
 if (!isset($_GET['id'])) {
     die("产品不存在");
@@ -33,7 +34,8 @@ if (!$product) {
 <html lang="zh">
 <head>
   <meta charset="UTF-8">
-  <title><?php echo htmlspecialchars($product['title']); ?> - 虚拟商品商城</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <title><?php echo SafeOutput::text($product['title']); ?> - 虚拟商品商城</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- 引入 Bootstrap 4 CSS -->
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
@@ -113,10 +115,10 @@ if (!$product) {
 <body>
 <div class="container">
   <!-- 商品标题 -->
-  <h1 class="product-header"><?php echo htmlspecialchars($product['title']); ?></h1>
+  <h1 class="product-header"><?php echo SafeOutput::text($product['title']); ?></h1>
   <!-- 副标题：简短介绍 -->
   <?php if (!empty($product['description'])): ?>
-    <h4 class="product-subtitle"><?php echo htmlspecialchars($product['description']); ?></h4>
+    <h4 class="product-subtitle"><?php echo SafeOutput::text($product['description']); ?></h4>
   <?php endif; ?>
   
   <!-- 主区域：左右两栏（桌面端左右对齐，手机端自动堆叠） -->
@@ -124,7 +126,7 @@ if (!$product) {
     <!-- 左侧图片区域 -->
     <div class="col-md-6 mb-3 mb-md-0">
       <div class="cover-container flex-fill">
-        <img src="<?php echo htmlspecialchars($product['cover']); ?>" alt="<?php echo htmlspecialchars($product['title']); ?>">
+        <img src="<?php echo SafeOutput::attr($product['cover']); ?>" alt="<?php echo SafeOutput::attr($product['title']); ?>">
       </div>
     </div>
     <!-- 右侧下单区域 -->
@@ -133,8 +135,8 @@ if (!$product) {
         <div class="card-body">
           <!-- 上部：显示价格与库存 -->
           <div class="product-info">
-            <p class="lead">价格：￥<?php echo htmlspecialchars($product['price']); ?></p>
-            <p>库存：<?php echo htmlspecialchars($product['stock']); ?></p>
+            <p class="lead">价格：￥<?php echo SafeOutput::text($product['price']); ?></p>
+            <p>库存：<?php echo SafeOutput::text($product['stock']); ?></p>
           </div>
           <hr>
           <!-- 下部：下单表单 -->
@@ -142,8 +144,8 @@ if (!$product) {
           <div class="buyer-form">
             <form method="get" action="choose_pay.php">
               <!-- 传递必要参数 -->
-              <input type="hidden" name="id" value="<?php echo $product['id']; ?>">
-              <input type="hidden" name="price" value="<?php echo htmlspecialchars($product['price']); ?>">
+              <input type="hidden" name="id" value="<?php echo SafeOutput::attr($product['id']); ?>">
+              <input type="hidden" name="price" value="<?php echo SafeOutput::attr($product['price']); ?>">
               <div class="form-group">
                 <label for="nickname">姓名/昵称 <span class="text-danger">*</span></label>
                 <input type="text" name="nickname" id="nickname" class="form-control" placeholder="请输入您的姓名或昵称" required>
@@ -154,7 +156,7 @@ if (!$product) {
               </div>
               <div class="form-group">
                 <label for="quantity">数量</label>
-                <input type="number" name="quantity" id="quantity" class="form-control" value="1" min="1" max="<?php echo htmlspecialchars($product['stock']); ?>" required>
+                <input type="number" name="quantity" id="quantity" class="form-control" value="1" min="1" max="<?php echo SafeOutput::attr($product['stock']); ?>" required>
               </div>
               <button type="submit" class="btn btn-success btn-lg btn-block">立即购买</button>
             </form>

@@ -18,6 +18,7 @@
 
 require_once 'db.php';
 require_once 'clean_orders.php';
+require_once 'lib/SafeOutput.php';
 
 // 获取支付配置
 $stmt = $pdo->query("SELECT * FROM epay_config LIMIT 1");
@@ -61,7 +62,7 @@ $price    = isset($_GET['price']) ? floatval($_GET['price']) : 4.51;
 <div class="container text-center">
     <h1 class="my-4">请选择支付方式</h1>
     <p>订单信息：<br>
-       产品ID: <?php echo $id; ?>, 昵称: <?php echo htmlspecialchars($nickname); ?>, 邮箱: <?php echo htmlspecialchars($email); ?>, 数量: <?php echo $quantity; ?>, 单价: <?php echo $price; ?>
+       产品ID: <?php echo SafeOutput::text($id); ?>, 昵称: <?php echo SafeOutput::text($nickname); ?>, 邮箱: <?php echo SafeOutput::text($email); ?>, 数量: <?php echo SafeOutput::text($quantity); ?>, 单价: <?php echo SafeOutput::text($price); ?>
     </p>
     <div id="price_display">
         <p>应付金额: <span id="total_amount"><?php echo number_format($price * $quantity, 2); ?></span> 元</p>
@@ -69,11 +70,11 @@ $price    = isset($_GET['price']) ? floatval($_GET['price']) : 4.51;
     <!-- 支付方式选择表单：将所有订单信息和支付方式提交给对应页面 -->
     <form method="get" id="payForm">
         <!-- 隐藏字段传递订单信息 -->
-        <input type="hidden" name="id" value="<?php echo $id; ?>">
-        <input type="hidden" name="nickname" value="<?php echo htmlspecialchars($nickname); ?>">
-        <input type="hidden" name="email" value="<?php echo htmlspecialchars($email); ?>">
-        <input type="hidden" name="quantity" value="<?php echo $quantity; ?>">
-        <input type="hidden" name="price" value="<?php echo $price; ?>">
+        <input type="hidden" name="id" value="<?php echo SafeOutput::attr($id); ?>">
+        <input type="hidden" name="nickname" value="<?php echo SafeOutput::attr($nickname); ?>">
+        <input type="hidden" name="email" value="<?php echo SafeOutput::attr($email); ?>">
+        <input type="hidden" name="quantity" value="<?php echo SafeOutput::attr($quantity); ?>">
+        <input type="hidden" name="price" value="<?php echo SafeOutput::attr($price); ?>">
         
         <!-- 优惠码输入区域 -->
         <?php if ($coupon_enabled): ?>

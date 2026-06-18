@@ -334,12 +334,6 @@ UPDATE admin_users SET password = MD5('new_password') WHERE username = 'admin';
 ### Q: 如何导出订单数据？
 **A:** 后台 → 订单列表 → 导出按钮（CSV 格式）
 
-## 📞 技术支持
-
-- 📧 Email: weijianao@gmail.com
-- 📱 Telegram 群：https://t.me/+yK7diUyqmxI2MjZl
-- 📺 YouTube 频道：https://www.youtube.com/@ajieshuo
-
 ## 🔄 版本更新
 
 ### v1.0 (2025-03-31)
