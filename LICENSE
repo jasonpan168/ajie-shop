@@ -1,19 +1,43 @@
-MIT License
-Copyright (c) 2025 ajie
+GNU AFFERO GENERAL PUBLIC LICENSE
+Version 3, 19 November 2007
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the “Software”), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Copyright (C) 2025 ajie
 
-🚫 附加限制说明（由作者添加）：
-本程序仅供学习交流、个人或企业自建平台使用。
-**禁止将本程序代码用于任何形式的商业倒卖或收费销售行为**，
-如发现违规行为，作者保留追责权利。
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
 
-THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND...
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+---
+
+中文说明（非法律文本，仅供理解）：
+
+本项目采用 GNU AGPL 3.0 协议开源。这意味着：
+
+✅ 允许：
+- 个人学习和研究
+- 企业或个人自建平台使用（内部部署）
+- 修改和改进代码
+- 非商业场景下的分发
+
+❌ 禁止：
+- 将代码或基于代码的产品进行商业销售、出租、租赁
+- 提供基于本代码的商业托管服务（SaaS）而不开源
+- 任何形式的商业倒卖行为
+
+⚠️ 重要条款：
+- 如果你修改本代码并将其作为网络服务提供给他人，
+  你必须向用户提供修改后的完整源代码
+- 任何衍生作品必须保持相同的 AGPL 3.0 协议
+
+违反协议的商业行为，作者保留追责权利。
+
+如有疑问，请咨询 <https://www.gnu.org/licenses/agpl-3.0.html>
