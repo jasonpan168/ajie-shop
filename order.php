@@ -18,6 +18,8 @@
 
 require_once 'db.php';
 require_once 'config.php';
+require_once 'lib/InputValidator.php';
+require_once 'lib/Logger.php';
 session_start();
 
 // 引入清理脚本
@@ -55,6 +57,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $email      = trim($_GET['email']);
     $quantity   = intval($_GET['quantity']);
     $price      = floatval($_GET['price']);
+
+    // 参数验证
+    if (empty($nickname) || !InputValidator::validateStringLength($nickname, 1, 100)) {
+        die("昵称无效，请输入1-100个字符的昵称");
+    }
+
+    // Email 验证
+    if (!InputValidator::validateEmail($email)) {
+        Logger::logSecurityEvent('Invalid Email Attempt', 'WARNING', ['email' => $email]);
+        die("邮箱地址无效，请重新输入");
+    }
+    $email = InputValidator::sanitizeEmail($email);
+
+    // 数量验证
+    if (!InputValidator::validateIntRange($quantity, 1, 10000)) {
+        die("购买数量无效，请输入1-10000之间的数字");
+    }
+
+    // 价格验证
+    if (!InputValidator::validateFloatRange($price, 0.01, 999999)) {
+        die("商品价格无效");
+    }
 
     // 验证商品存在且价格匹配（防止价格篡改）
     $stmt = $pdo->prepare("SELECT id, price, stock FROM products WHERE id = ?");
@@ -132,6 +156,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $coupon_code,
             $coupon_amount,
             $ip
+        ]);
+
+        // 记录订单创建日志
+        Logger::logAction('Order Created', $order_no, [
+            'product_id' => $product_id,
+            'email' => $email,
+            'amount' => $amount,
+            'ip' => $ip,
+            'pay_type' => $type
         ]);
 
         // 发送Telegram下单通知

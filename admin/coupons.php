@@ -17,15 +17,16 @@
  */
 
 session_start();
-if (!isset($_SESSION['admin'])) {
-    header("Location: login.php");
-    exit;
-}
 require_once '../db.php';
+require_once '../lib/CsrfProtection.php';
+require_once 'session_check.php';
 
-// 处理删除请求
-if (isset($_GET['delete'])) {
-    $id = intval($_GET['delete']);
+// 处理删除请求（POST + CSRF）
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
+    if (!CsrfProtection::validateToken()) {
+        die("CSRF 验证失败");
+    }
+    $id = intval($_POST['delete_id']);
     $stmt = $pdo->prepare("DELETE FROM coupons WHERE id = ? AND status != 'used'");
     $stmt->execute([$id]);
     header("Location: coupons.php");
@@ -34,6 +35,9 @@ if (isset($_GET['delete'])) {
 
 // 处理新增或编辑表单提交
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!CsrfProtection::validateToken()) {
+        die("CSRF 验证失败");
+    }
     if (isset($_POST['action']) && $_POST['action'] === 'generate') {
         // 批量生成优惠码
         $count = isset($_POST['count']) ? intval($_POST['count']) : 1;

@@ -10,11 +10,9 @@
  */
 
 session_start();
-if (!isset($_SESSION['admin'])) {
-    header("Location: login.php");
-    exit;
-}
 require_once '../db.php';
+require_once '../lib/CsrfProtection.php';
+require_once 'session_check.php';
 
 $page_title = isset($_GET['id']) ? '编辑商品' : '添加商品';
 $current_page = 'products';
@@ -28,6 +26,11 @@ if ($id > 0) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // CSRF 令牌验证
+    if (!CsrfProtection::validateToken()) {
+        die("CSRF 验证失败，请重新提交表单");
+    }
+
     $title = trim($_POST['title']);
     $description = trim($_POST['description']);
     $detail = trim($_POST['detail']);  // 详细介绍字段
@@ -58,6 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
         <div class="card-body">
           <form method="post" action="product_edit.php<?php echo $id > 0 ? '?id=' . $id : ''; ?>">
+            <?php echo CsrfProtection::getTokenField(); ?>
             <div class="form-group">
               <label>商品标题</label>
               <input type="text" name="title" class="form-control" required value="<?php echo $product ? htmlspecialchars($product['title']) : ''; ?>">

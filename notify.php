@@ -20,6 +20,7 @@
 require_once 'db.php';
 require_once 'config.php';
 require_once 'send_mail.php';
+require_once 'lib/Logger.php';
 
 $debugLogFile = __DIR__ . '/notify_debug.log';
 $logFile = __DIR__ . '/notify.log';
@@ -147,8 +148,10 @@ if (strtoupper($localSign) === strtoupper($wechatSign) && $result['return_code']
             $stmt = $pdo->prepare("UPDATE orders SET status = 'paid', amount = ? WHERE order_no = ?");
             $stmt->execute([$total_fee / 100, $order_no]);
             file_put_contents($logFile, "Order $order_no updated to paid.\n", FILE_APPEND);
+            Logger::logPaymentEvent('Payment Verified', $order_no, $total_fee / 100, ['status' => 'paid']);
         } else {
             file_put_contents($logFile, "Order $order_no already marked as paid.\n", FILE_APPEND);
+            Logger::logPaymentEvent('Duplicate Payment Notification', $order_no, $total_fee / 100, ['status' => 'already_paid']);
         }
     } else {
         // 新订单

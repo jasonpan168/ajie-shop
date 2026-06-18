@@ -10,14 +10,16 @@
  */
 
 session_start();
-if (!isset($_SESSION['admin'])) {
-    header("Location: login.php");
-    exit;
-}
 require_once '../db.php';
+require_once '../lib/CsrfProtection.php';
+require_once 'session_check.php';
 
 // 处理批量删除请求
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_order_ids']) && is_array($_POST['delete_order_ids'])) {
+    // CSRF 令牌验证
+    if (!CsrfProtection::validateToken()) {
+        die("CSRF 验证失败，请重新提交表单");
+    }
     $ids = $_POST['delete_order_ids'];
     // 为避免 SQL 注入，使用预处理
     $in  = str_repeat('?,', count($ids) - 1) . '?';
@@ -95,6 +97,7 @@ require_once 'includes/header.php';
       
       <!-- 批量删除表单：包含订单列表复选框 -->
       <form method="post" action="order_details.php?start_date=<?php echo urlencode($start_date); ?>&end_date=<?php echo urlencode($end_date); ?>&page=<?php echo $page; ?>">
+        <?php echo CsrfProtection::getTokenField(); ?>
         <table class="table table-bordered table-striped">
           <thead class="thead-dark">
             <tr>
