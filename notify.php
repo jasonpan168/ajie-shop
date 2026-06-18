@@ -143,43 +143,71 @@ if (strtoupper($localSign) === strtoupper($wechatSign) && $result['return_code']
     $stmt->execute([$order_no]);
     $orderRecord = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    if ($orderRecord) {
-        if ($orderRecord['status'] !== 'paid') {
-            $stmt = $pdo->prepare("UPDATE orders SET status = 'paid', amount = ? WHERE order_no = ?");
-            $stmt->execute([$total_fee / 100, $order_no]);
-            file_put_contents($logFile, "Order $order_no updated to paid.\n", FILE_APPEND);
-            Logger::logPaymentEvent('Payment Verified', $order_no, $total_fee / 100, ['status' => 'paid']);
-        } else {
-            file_put_contents($logFile, "Order $order_no already marked as paid.\n", FILE_APPEND);
-            Logger::logPaymentEvent('Duplicate Payment Notification', $order_no, $total_fee / 100, ['status' => 'already_paid']);
-        }
-    } else {
-        // 新订单
-        $stmt = $pdo->prepare("
-            INSERT INTO orders 
-            (order_no, product_id, product_title, nickname, email, quantity, amount, status, created_at, pay_type)
-            VALUES
-            (?, ?, ?, ?, ?, ?, ?, 'paid', NOW(), ?)
-        ");
-        $stmt->execute([
-            $order_no,
-            $product_id,
-            $product_title,
-            $nickname,
-            $email,
-            $quantity,
-            $total_fee / 100,
-            'wxpay'
-        ]);
-        file_put_contents($logFile, "Order $order_no inserted successfully.\n", FILE_APPEND);
-    }
-    
-    // 扣减库存
+    // 使用数据库事务确保一致性
     try {
-        $stmt = $pdo->prepare("UPDATE products SET stock = stock - ? WHERE id = ?");
-        $stmt->execute([$quantity, $product_id]);
+        $pdo->beginTransaction();
+
+        if ($orderRecord) {
+            if ($orderRecord['status'] !== 'paid') {
+                // 更新订单状态
+                $stmt = $pdo->prepare("UPDATE orders SET status = 'paid', amount = ? WHERE order_no = ?");
+                $stmt->execute([$total_fee / 100, $order_no]);
+                file_put_contents($logFile, "Order $order_no updated to paid.\n", FILE_APPEND);
+                Logger::logPaymentEvent('Payment Verified', $order_no, $total_fee / 100, ['status' => 'paid']);
+
+                // 在事务内扣减库存
+                $stmt = $pdo->prepare("UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?");
+                $result = $stmt->execute([$quantity, $product_id, $quantity]);
+                if ($stmt->rowCount() === 0) {
+                    throw new Exception("库存不足，无法完成扣减");
+                }
+            } else {
+                file_put_contents($logFile, "Order $order_no already marked as paid.\n", FILE_APPEND);
+                Logger::logPaymentEvent('Duplicate Payment Notification', $order_no, $total_fee / 100, ['status' => 'already_paid']);
+                // 不处理已支付的订单，直接提交
+                $pdo->commit();
+            }
+        } else {
+            // 新订单
+            $stmt = $pdo->prepare("
+                INSERT INTO orders
+                (order_no, product_id, product_title, nickname, email, quantity, amount, status, created_at, pay_type)
+                VALUES
+                (?, ?, ?, ?, ?, ?, ?, 'paid', NOW(), ?)
+            ");
+            $stmt->execute([
+                $order_no,
+                $product_id,
+                $product_title,
+                $nickname,
+                $email,
+                $quantity,
+                $total_fee / 100,
+                'wxpay'
+            ]);
+            file_put_contents($logFile, "Order $order_no inserted successfully.\n", FILE_APPEND);
+
+            // 在事务内扣减库存
+            $stmt = $pdo->prepare("UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?");
+            $result = $stmt->execute([$quantity, $product_id, $quantity]);
+            if ($stmt->rowCount() === 0) {
+                throw new Exception("库存不足，无法完成扣减");
+            }
+        }
+
+        // 如果到这里说明所有操作都成功，提交事务
+        $pdo->commit();
+        Logger::logAction('Transaction Committed', $order_no, ['type' => 'payment']);
+
     } catch (Exception $e) {
-        file_put_contents($logFile, "库存更新失败: " . $e->getMessage() . "\n", FILE_APPEND);
+        // 事务失败，回滚
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        file_put_contents($logFile, "Transaction failed for order $order_no: " . $e->getMessage() . "\n", FILE_APPEND);
+        Logger::logSecurityEvent('Transaction Rollback', 'ERROR', ['order' => $order_no, 'error' => $e->getMessage()]);
+        // 不要在这里返回成功，让微信重新通知
+        exit;
     }
     
     // 发送Telegram支付通知
