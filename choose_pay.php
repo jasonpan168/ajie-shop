@@ -1,21 +1,4 @@
 <?php
-/**
- * 支付方式选择系统
- * 
- * 作者：阿杰
- * 电报群：https://t.me/+yK7diUyqmxI2MjZl
- * 作者邮箱：weijianao@gmail.com
- * 作者油管：https://www.youtube.com/@ajieshuo
- * 开发日期：2025年2月6日
- * 首板开发完成日期：2025年3月31日
- * 
- * 该文件主要用途是：
- * 提供支付方式选择界面，支持易支付和原生微信支付，
- * 处理订单参数，显示支付金额，并集成优惠码验证功能。
- * 
- * 未经允许禁止商用，仅供学习研究个人使用
- */
-
 require_once 'db.php';
 require_once 'clean_orders.php';
 require_once 'lib/SafeOutput.php';
@@ -27,180 +10,203 @@ $epay_config = $stmt->fetch(PDO::FETCH_ASSOC);
 $stmt = $pdo->query("SELECT * FROM wechat_config LIMIT 1");
 $wechat_config = $stmt->fetch(PDO::FETCH_ASSOC);
 
+// 检查配置是否完整
+$epay_ready = $epay_config && $epay_config['enabled'] && 
+              (!empty($epay_config['alipay_enabled']) || !empty($epay_config['wxpay_enabled']) || !empty($epay_config['usdt_enabled']));
+
+$wechat_ready = $wechat_config && $wechat_config['enabled'] && 
+                !empty($wechat_config['appid']) && 
+                !empty($wechat_config['mch_id']) && 
+                !empty($wechat_config['api_key']) &&
+                strpos($wechat_config['appid'], '填写') === false &&
+                strpos($wechat_config['mch_id'], '填写') === false &&
+                strpos($wechat_config['api_key'], '填写') === false;
+
 // 获取系统配置 - 优惠码功能是否启用
 try {
     $stmt = $pdo->query("SELECT * FROM system_config WHERE `key` = 'coupon_enabled' LIMIT 1");
     $config = $stmt->fetch(PDO::FETCH_ASSOC);
     $coupon_enabled = isset($config['value']) ? (bool)$config['value'] : false;
 } catch (Exception $e) {
-    // 如果表不存在或其他错误，默认禁用优惠码功能
     $coupon_enabled = false;
 }
 
-// 获取从 product.php 传递的订单信息
+// 获取订单信息
 $id       = isset($_GET['id']) ? intval($_GET['id']) : 1;
-$nickname = isset($_GET['nickname']) ? trim($_GET['nickname']) : '匿名';
-$email    = isset($_GET['email']) ? trim($_GET['email']) : 'test@example.com';
+$nickname = isset($_GET['nickname']) ? trim($_GET['nickname']) : '';
+$email    = isset($_GET['email']) ? trim($_GET['email']) : '';
 $quantity = isset($_GET['quantity']) ? intval($_GET['quantity']) : 1;
-$price    = isset($_GET['price']) ? floatval($_GET['price']) : 4.51;
+$price    = isset($_GET['price']) ? floatval($_GET['price']) : 0;
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <title>选择支付方式</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- 引入 Bootstrap 4 CSS -->
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
-  <style>
-      body { padding-top: 70px; }
-      .container { max-width: 600px; }
-      .btn-pay { width: 100%; margin-bottom: 20px; font-size: 1.25rem; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Select Payment Method - CloudShop</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: 60px 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        .payment-container { max-width: 600px; margin: 0 auto; background: white; border-radius: 15px; box-shadow: 0 5px 30px rgba(0,0,0,0.1); padding: 50px; }
+        .payment-title { font-size: 2rem; font-weight: 700; color: #2c3e50; margin-bottom: 10px; }
+        .payment-subtitle { color: #7f8c8d; margin-bottom: 40px; font-size: 1.1rem; }
+        .order-info { background: #f5f7fa; padding: 20px; border-radius: 10px; margin-bottom: 30px; }
+        .order-row { display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .order-label { color: #7f8c8d; font-weight: 600; }
+        .order-value { color: #2c3e50; font-weight: 700; }
+        .amount-total { font-size: 1.5rem; color: #667eea; font-weight: 700; }
+        .payment-methods { margin-bottom: 30px; }
+        .payment-method { padding: 20px; border: 2px solid #ecf0f1; border-radius: 10px; margin-bottom: 15px; cursor: pointer; transition: all 0.3s ease; }
+        .payment-method:hover { border-color: #667eea; background: #f5f7fa; }
+        .payment-method.active { border-color: #667eea; background: #f0f4ff; }
+        .payment-method input { margin-right: 10px; cursor: pointer; }
+        .payment-method-title { font-weight: 700; color: #2c3e50; margin-bottom: 5px; }
+        .payment-method-desc { font-size: 0.9rem; color: #7f8c8d; }
+        .payment-btn { width: 100%; padding: 15px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 10px; font-size: 1.1rem; font-weight: 700; cursor: pointer; transition: all 0.3s ease; }
+        .payment-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3); }
+        .payment-btn:disabled { background: #ccc; cursor: not-allowed; transform: none; }
+        .alert-info { background: #e3f2fd; border-left: 4px solid #667eea; }
+        .alert-warning { background: #fff3cd; border-left: 4px solid #ffc107; }
+        .back-link { display: inline-block; margin-bottom: 30px; color: #667eea; text-decoration: none; font-weight: 600; }
+        .back-link:hover { color: #764ba2; }
+        .no-payment { text-align: center; color: #7f8c8d; }
+        .config-btn { margin-top: 20px; }
+    </style>
 </head>
 <body>
-<div class="container text-center">
-    <h1 class="my-4">请选择支付方式</h1>
-    <p>订单信息：<br>
-       产品ID: <?php echo SafeOutput::text($id); ?>, 昵称: <?php echo SafeOutput::text($nickname); ?>, 邮箱: <?php echo SafeOutput::text($email); ?>, 数量: <?php echo SafeOutput::text($quantity); ?>, 单价: <?php echo SafeOutput::text($price); ?>
-    </p>
-    <div id="price_display">
-        <p>应付金额: <span id="total_amount"><?php echo number_format($price * $quantity, 2); ?></span> 元</p>
-    </div>
-    <!-- 支付方式选择表单：将所有订单信息和支付方式提交给对应页面 -->
-    <form method="get" id="payForm">
-        <!-- 隐藏字段传递订单信息 -->
-        <input type="hidden" name="id" value="<?php echo SafeOutput::attr($id); ?>">
-        <input type="hidden" name="nickname" value="<?php echo SafeOutput::attr($nickname); ?>">
-        <input type="hidden" name="email" value="<?php echo SafeOutput::attr($email); ?>">
-        <input type="hidden" name="quantity" value="<?php echo SafeOutput::attr($quantity); ?>">
-        <input type="hidden" name="price" value="<?php echo SafeOutput::attr($price); ?>">
+    <div class="payment-container">
+        <a href="/" class="back-link"><i class="fas fa-arrow-left"></i> Back to Home</a>
         
-        <!-- 优惠码输入区域 -->
-        <?php if ($coupon_enabled): ?>
-        <div class="card mb-4">
-            <div class="card-header bg-light">使用优惠码</div>
-            <div class="card-body">
-                <div class="form-group">
-                    <div class="input-group">
-                        <input type="text" class="form-control" id="coupon_code" placeholder="请输入优惠码">
-                        <div class="input-group-append">
-                            <button type="button" class="btn btn-outline-primary" id="check_coupon">验证</button>
-                        </div>
-                    </div>
-                    <div id="coupon_message" class="mt-2"></div>
-                </div>
-                <!-- 优惠码隐藏字段 -->
-                <input type="hidden" name="coupon_id" id="coupon_id" value="">
-                <input type="hidden" name="coupon_code_hidden" id="coupon_code_hidden" value="">
-                <input type="hidden" name="coupon_amount" id="coupon_amount" value="0">
+        <h1 class="payment-title"><i class="fas fa-credit-card"></i> Payment Method</h1>
+        <p class="payment-subtitle">Select your preferred payment method</p>
+
+        <!-- 订单信息 -->
+        <div class="order-info">
+            <div class="order-row">
+                <span class="order-label">Product ID:</span>
+                <span class="order-value"><?php echo SafeOutput::text($id); ?></span>
+            </div>
+            <div class="order-row">
+                <span class="order-label">Quantity:</span>
+                <span class="order-value"><?php echo SafeOutput::text($quantity); ?></span>
+            </div>
+            <div class="order-row">
+                <span class="order-label">Unit Price:</span>
+                <span class="order-value">¥<?php echo SafeOutput::text($price); ?></span>
+            </div>
+            <hr style="margin: 10px 0;">
+            <div class="order-row">
+                <span class="order-label" style="font-size: 1.1rem;">Total Amount:</span>
+                <span class="amount-total">¥<?php echo number_format($price * $quantity, 2); ?></span>
             </div>
         </div>
-        <?php endif; ?>
-        <!-- 易支付支付方式选择部分 -->
-        <?php if ($epay_config['alipay_enabled'] || $epay_config['wxpay_enabled'] || $epay_config['usdt_enabled']): ?>
-        <div class="form-group">
-            <label>易支付支付方式选择：</label><br>
-            <?php if ($epay_config['alipay_enabled']): ?>
-            <label><input type="radio" name="type" value="alipay" checked> 支付宝</label>&nbsp;
-            <?php endif; ?>
-            <?php if ($epay_config['wxpay_enabled']): ?>
-            <label><input type="radio" name="type" value="wxpay" <?php echo !$epay_config['alipay_enabled'] ? 'checked' : ''; ?>> 微信支付</label>&nbsp;
-            <?php endif; ?>
-            <?php if ($epay_config['usdt_enabled']): ?>
-            <label><input type="radio" name="type" value="usdt" <?php echo !$epay_config['alipay_enabled'] && !$epay_config['wxpay_enabled'] ? 'checked' : ''; ?>> USDT</label>&nbsp;
-            <?php endif; ?>
+
+        <!-- 支付方式选择 -->
+        <div class="payment-methods">
+            <form method="post" id="payForm">
+                <!-- 隐藏字段 -->
+                <input type="hidden" name="id" value="<?php echo SafeOutput::attr($id); ?>">
+                <input type="hidden" name="nickname" value="<?php echo SafeOutput::attr($nickname); ?>">
+                <input type="hidden" name="email" value="<?php echo SafeOutput::attr($email); ?>">
+                <input type="hidden" name="quantity" value="<?php echo SafeOutput::attr($quantity); ?>">
+                <input type="hidden" name="price" value="<?php echo SafeOutput::attr($price); ?>">
+                <input type="hidden" name="payment_method" id="payment_method" value="">
+
+                <?php if (!$epay_ready && !$wechat_ready): ?>
+                    <!-- 没有任何支付方式配置 -->
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>No Payment Methods Available</strong><br>
+                        The store hasn't configured any payment methods yet. Please contact the administrator.
+                        <div class="config-btn">
+                            <a href="admin/login.php" class="btn btn-sm btn-primary">Go to Admin Panel</a>
+                        </div>
+                    </div>
+
+                <?php else: ?>
+
+                    <!-- 易支付 -->
+                    <?php if ($epay_ready): ?>
+                    <div class="payment-method" onclick="selectPayment('epay', this)">
+                        <div>
+                            <input type="radio" name="method_choice" value="epay" id="method_epay">
+                            <label for="method_epay" style="cursor: pointer; margin: 0;">
+                                <div class="payment-method-title"><i class="fas fa-money-bill-wave"></i> Easy Payment (E-Pay)</div>
+                                <div class="payment-method-desc">Support Alipay, WeChat Pay, USDT</div>
+                            </label>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- 微信支付 -->
+                    <?php if ($wechat_ready): ?>
+                    <div class="payment-method" onclick="selectPayment('wechat', this)">
+                        <div>
+                            <input type="radio" name="method_choice" value="wechat" id="method_wechat">
+                            <label for="method_wechat" style="cursor: pointer; margin: 0;">
+                                <div class="payment-method-title"><i class="fab fa-weixin"></i> WeChat Official Payment</div>
+                                <div class="payment-method-desc">Direct WeChat payment integration</div>
+                            </label>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- 提示信息 -->
+                    <div class="alert alert-info mt-4">
+                        <i class="fas fa-info-circle"></i>
+                        Your information is secure. We never store your payment details.
+                    </div>
+
+                    <!-- 提交按钮 -->
+                    <button type="submit" class="payment-btn" id="submitBtn" disabled>
+                        <i class="fas fa-lock"></i> Proceed to Payment
+                    </button>
+
+                <?php endif; ?>
+            </form>
         </div>
-        <!-- 按钮区域 -->
-        <button type="button" class="btn btn-primary btn-pay" onclick="submitPay('rainbow')">易支付接口</button>
-        <?php endif; ?>
-        <?php if ($wechat_config['enabled']): ?>
-        <button type="button" class="btn btn-success btn-pay" onclick="submitPay('wechat')">微信官方支付</button>
-        <?php endif; ?>
-    </form>
-    <p><a href="index.php" class="btn btn-secondary">返回首页</a></p>
-</div>
-<script>
-    // 根据用户点击的按钮，跳转到对应的支付处理页面
-    function submitPay(method) {
-        var form = document.getElementById('payForm');
-        if(method === 'rainbow'){
-            // 易支付页面直接采用表单中选择的支付方式
-            form.action = "rainbow_pay.php";
-        } else if(method === 'wechat'){
-            // 微信官方支付：强制覆盖支付方式为 "wxpay"
-            form.action = "order.php";
-            // 检查是否已有隐藏字段名为 type，若有则修改，否则添加一个新的隐藏字段
-            var hiddenType = document.querySelector("input[name='type'][type='hidden']");
-            if (hiddenType) {
-                hiddenType.value = "wxpay";
-            } else {
-                // 如果没有找到隐藏字段，则创建一个
-                var input = document.createElement("input");
-                input.type = "hidden";
-                input.name = "type";
-                input.value = "wxpay";
-                form.appendChild(input);
-            }
-        }
-        // 提交表单
-        form.submit();
-    }
-</script>
+    </div>
 
-<?php if ($coupon_enabled): ?>
-<!-- 优惠码验证脚本 -->
-<script>
-    document.getElementById('check_coupon').addEventListener('click', function() {
-        var code = document.getElementById('coupon_code').value.trim();
-        var price = <?php echo $price; ?>;
-        var quantity = <?php echo $quantity; ?>;
-        var totalAmount = price * quantity;
-        var messageDiv = document.getElementById('coupon_message');
-        
-        if (!code) {
-            messageDiv.innerHTML = '<div class="alert alert-warning">请输入优惠码</div>';
-            return;
-        }
-        
-        // 发送AJAX请求验证优惠码
-        fetch('check_coupon.php?code=' + encodeURIComponent(code) + '&amount=' + totalAmount)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // 优惠码有效
-                    var discountAmount = data.data.discount_amount;
-                    messageDiv.innerHTML = '<div class="alert alert-success">优惠码有效，可抵扣 ¥' + discountAmount.toFixed(2) + '</div>';
-                    
-                    // 设置隐藏字段的值
-                    document.getElementById('coupon_id').value = data.data.id;
-                    document.getElementById('coupon_code_hidden').value = data.data.code;
-                    document.getElementById('coupon_amount').value = discountAmount;
-                    
-                    // 更新显示的应付金额
-                    var finalAmount = totalAmount - discountAmount;
-                    if (finalAmount < 0) finalAmount = 0;
-                    document.getElementById('total_amount').innerText = finalAmount.toFixed(2);
-                } else {
-                    // 优惠码无效
-                    messageDiv.innerHTML = '<div class="alert alert-danger">' + data.message + '</div>';
-                    
-                    // 清空隐藏字段
-                    document.getElementById('coupon_id').value = '';
-                    document.getElementById('coupon_code_hidden').value = '';
-                    document.getElementById('coupon_amount').value = '0';
-                }
-            })
-            .catch(error => {
-                messageDiv.innerHTML = '<div class="alert alert-danger">验证优惠码时出错</div>';
-                console.error('Error:', error);
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function selectPayment(method, element) {
+            // 取消其他选择
+            document.querySelectorAll('.payment-method').forEach(el => {
+                el.classList.remove('active');
             });
-    });
-</script>
-<?php endif; ?>
+            
+            // 选中当前方法
+            element.classList.add('active');
+            document.getElementById('payment_method').value = method;
+            document.getElementById('submitBtn').disabled = false;
+            
+            // 选中对应的 radio
+            document.getElementById('method_' + method).checked = true;
+        }
 
-<!-- 引入 jQuery 和 Bootstrap JS -->
-<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.bundle.min.js"></script>
+        // 设置默认选项
+        document.addEventListener('DOMContentLoaded', function() {
+            const radioButtons = document.querySelectorAll('input[name="method_choice"]');
+            if (radioButtons.length > 0) {
+                radioButtons[0].closest('.payment-method').click();
+            }
+        });
+
+        // 表单提交
+        document.getElementById('payForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const method = document.getElementById('payment_method').value;
+            const form = this;
+            
+            if (method === 'wechat') {
+                form.action = 'order.php';
+            } else if (method === 'epay') {
+                form.action = 'rainbow_pay.php';
+            }
+            
+            form.submit();
+        });
+    </script>
 </body>
 </html>

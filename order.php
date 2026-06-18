@@ -297,7 +297,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
     curl_setopt($ch, CURLOPT_TIMEOUT, 10);
     $response = curl_exec($ch);
-    curl_close($ch);
 
     if ($response) {
         $result = xmlToArray($response);
