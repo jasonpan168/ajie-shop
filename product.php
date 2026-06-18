@@ -34,22 +34,42 @@ if (!$product) {
         .back-link { margin: 20px 0; }
         .back-link a { color: #667eea; text-decoration: none; font-weight: 600; }
         .back-link a:hover { color: #764ba2; }
+        
         .product-container { max-width: 1200px; margin: 40px auto; background: white; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.08); overflow: hidden; }
-        .product-wrapper { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; padding: 50px; }
-        .product-image { width: 100%; aspect-ratio: 1; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 5rem; }
+        
+        .product-top { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; padding: 50px; }
+        
+        .product-image { width: 100%; aspect-ratio: 1; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 5rem; overflow: hidden; }
         .product-image img { width: 100%; height: 100%; object-fit: cover; }
+        
+        .product-info-right { display: flex; flex-direction: column; }
         .product-title { font-size: 2.5rem; font-weight: 700; color: #2c3e50; margin-bottom: 15px; }
         .product-subtitle { font-size: 1.2rem; color: #7f8c8d; margin-bottom: 30px; }
         .price { font-size: 3rem; font-weight: 700; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 30px; }
-        .buy-button { width: 100%; padding: 16px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 10px; font-size: 1.1rem; font-weight: 700; cursor: pointer; transition: all 0.3s ease; }
-        .buy-button:hover { transform: translateY(-2px); box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4); }
+        
         .form-control { padding: 12px 15px; border: 2px solid #ecf0f1; border-radius: 8px; }
         .form-control:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
         .qty-control { display: flex; gap: 10px; align-items: center; }
         .qty-btn { width: 40px; height: 40px; border: 2px solid #ecf0f1; background: white; border-radius: 8px; cursor: pointer; font-weight: 700; }
         .qty-btn:hover { background: #667eea; color: white; border-color: #667eea; }
+        .buy-button { width: 100%; padding: 16px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 10px; font-size: 1.1rem; font-weight: 700; cursor: pointer; transition: all 0.3s ease; }
+        .buy-button:hover { transform: translateY(-2px); box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4); }
+        
+        .product-bottom { padding: 0 50px 50px 50px; }
+        .product-detail-title { font-size: 1.5rem; font-weight: 700; color: #2c3e50; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 2px solid #ecf0f1; }
+        .product-detail-content { color: #555; line-height: 1.8; font-size: 1rem; }
+        .product-detail-content h3 { font-size: 1.2rem; font-weight: 700; color: #2c3e50; margin: 25px 0 15px 0; }
+        .product-detail-content ul, .product-detail-content p { margin-bottom: 15px; }
+        .product-detail-content li { margin-bottom: 8px; }
+        
         footer { background: #2c3e50; color: white; padding: 40px 20px 20px; text-align: center; margin-top: 60px; }
-        @media (max-width: 768px) { .product-wrapper { grid-template-columns: 1fr; gap: 30px; } .product-title { font-size: 1.8rem; } .price { font-size: 2rem; } }
+        
+        @media (max-width: 768px) { 
+            .product-top { grid-template-columns: 1fr; gap: 30px; padding: 30px; } 
+            .product-title { font-size: 1.8rem; } 
+            .price { font-size: 2rem; }
+            .product-bottom { padding: 0 30px 30px 30px; }
+        }
     </style>
 </head>
 <body>
@@ -71,7 +91,9 @@ if (!$product) {
         <div class="back-link"><a href="/"><i class="fas fa-arrow-left"></i> Back to Products</a></div>
         
         <div class="product-container">
-            <div class="product-wrapper">
+            <!-- 上方：图片和购买信息 -->
+            <div class="product-top">
+                <!-- 左：图片 -->
                 <div>
                     <div class="product-image">
                         <?php if (!empty($product['cover'])): ?>
@@ -82,7 +104,8 @@ if (!$product) {
                     </div>
                 </div>
 
-                <div>
+                <!-- 右：基本信息和购买 -->
+                <div class="product-info-right">
                     <h1 class="product-title"><?php echo SafeOutput::text($product['title']); ?></h1>
                     <?php if (!empty($product['description'])): ?>
                         <p class="product-subtitle"><?php echo SafeOutput::text($product['description']); ?></p>
@@ -95,7 +118,7 @@ if (!$product) {
 
                     <div class="price">¥<?php echo SafeOutput::text($product['price']); ?></div>
 
-                    <form method="get" action="choose_pay.php" style="margin-bottom: 30px;">
+                    <form method="get" action="choose_pay.php">
                         <input type="hidden" name="id" value="<?php echo SafeOutput::attr($product['id']); ?>">
                         <input type="hidden" name="price" value="<?php echo SafeOutput::attr($product['price']); ?>">
 
@@ -120,25 +143,26 @@ if (!$product) {
 
                         <button type="submit" class="buy-button"><i class="fas fa-shopping-cart"></i> Proceed to Checkout</button>
                     </form>
-
-                    <?php if (isset($product['detail']) && !empty(trim($product['detail']))): ?>
-                        <div style="margin-top: 30px; padding-top: 30px; border-top: 1px solid #ecf0f1;">
-                            <h3 style="font-size: 1.1rem; font-weight: 700; color: #2c3e50; margin-bottom: 15px;"><i class="fas fa-info-circle"></i> Product Details</h3>
-                            <div style="color: #555; line-height: 1.8;">
-                                <?php
-                                $detail = trim($product['detail']);
-                                if ($detail === strip_tags($detail)) {
-                                    $detail = preg_replace('/(https?:\/\/[^\s]+?\.(jpg|jpeg|png|gif))/i', '<img src="$1" style="max-width:100%; margin:10px 0; border-radius:8px;" alt="Product image">', $detail);
-                                    echo nl2br($detail);
-                                } else {
-                                    echo $detail;
-                                }
-                                ?>
-                            </div>
-                        </div>
-                    <?php endif; ?>
                 </div>
             </div>
+
+            <!-- 下方：详细介绍 -->
+            <?php if (isset($product['detail']) && !empty(trim($product['detail']))): ?>
+                <div class="product-bottom">
+                    <h2 class="product-detail-title"><i class="fas fa-info-circle"></i> Product Details</h2>
+                    <div class="product-detail-content">
+                        <?php
+                        $detail = trim($product['detail']);
+                        if ($detail === strip_tags($detail)) {
+                            $detail = preg_replace('/(https?:\/\/[^\s]+?\.(jpg|jpeg|png|gif))/i', '<img src="$1" style="max-width:100%; margin:10px 0; border-radius:8px;" alt="Product image">', $detail);
+                            echo nl2br($detail);
+                        } else {
+                            echo $detail;
+                        }
+                        ?>
+                    </div>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 
