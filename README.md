@@ -4,6 +4,7 @@
 
 - 许可证：**AGPL-3.0**（商业用途允许，见 [许可证](#-许可证)）
 - 安全问题：请按 [SECURITY.md](SECURITY.md) **私密报告**，不要公开提 Issue
+- 接手 / 想贡献：先读 [技术债](#-技术债) —— 这个项目欠着什么，写得很清楚
 
 > ⚠️ **这套程序会处理真钱和买家个人信息。** 上线前请完整读一遍 [安全性](#-安全性) 一节。
 
@@ -289,15 +290,202 @@ done
 
 ### 已知限制
 
-- **后台 CSRF 覆盖不全**（见上表），在管理员已登录的浏览器里被诱导访问恶意页面，可能触发未受保护的后台操作。
-- **后台没有多用户和权限分级**，只有一个管理员角色。
-- **`admin/uploads/` 没有上传类型白名单审计**，请不要把该目录配成可执行 PHP。
-- **微信 API 密钥的 AES-128-ECB 加密不是强保护**（同上文说明）。
-- **没有自动化测试**，也没有 CI。
-- **前端依赖是 CDN 外链**，已全部加上 SRI，但 Bootstrap 4.5.0 / jQuery 3.5.1 本身已停止维护，且外链意味着可用性依赖第三方 CDN。对可用性或隐私要求高的部署，建议把这些静态资源下载到本地自托管。
-- `rainbow_notify.php` 与 `notify_url.php` 功能重叠，前者是易支付回调的简化实现，仅在你手动把它配成回调地址时才会被用到。
+这个项目欠的账都写在下面一节 [技术债](#-技术债) 里，逐条说明了「是什么 / 影响什么场景 / 为什么现在不做 / 想做的人从哪下手」。安全相关的几条按优先级依次是：
+
+1. [后台 CSRF 只覆盖 18 个 POST 页面里的 4 个](#1-后台-csrf-只覆盖-18-个-post-页面里的-4-个--优先级最高)
+2. [后台 XSS 未逐页审计](#2-后台-xss-未逐页审计)
+3. [`admin/uploads/` 没有上传类型白名单审计](#6-adminuploads-没有上传类型白名单审计)
+4. [微信 API 密钥的加密不是强保护](#8-其他已知项不影响安全但接手前该知道)
 
 发现问题请按 [SECURITY.md](SECURITY.md) **私密报告**。
+
+---
+
+## 🧱 技术债
+
+这个项目欠着以下东西。**每一条都是已知的、有意留下的**，不是没注意到。接手或想贡献的人请先读完这一节，再决定从哪里动手。
+
+格式：**是什么 → 影响谁 / 什么场景 → 为什么现在不做 → 想做的人从哪下手**。
+
+---
+
+### 1. 后台 CSRF 只覆盖 18 个 POST 页面里的 4 个 🔴 优先级最高
+
+**是什么**
+`lib/CsrfProtection.php` 早就写好了，但后台只有 4 个页面在用：`admin/login.php`、`admin/product_edit.php`、`admin/order_details.php`、`admin/coupons.php`。另外 **14 个会处理 POST 的后台页面没有任何 token 校验**：
+
+```
+admin/create_card_task.php      admin/products.php
+admin/dashboard.php             admin/telegram_config.php
+admin/email_settings.php        admin/test_email.php
+admin/epay_config.php           admin/unlock_ip.php
+admin/ip_limits.php             admin/update_product_status.php
+admin/manage_card_tasks.php     admin/wechat_config.php
+admin/menus.php                 admin/wxpusher_config.php
+```
+
+**影响谁 / 什么场景**
+只在**管理员已经登录**的浏览器里才成立：管理员带着有效 session 的情况下，被诱导打开一个第三方恶意页面（钓鱼邮件、论坛帖、聊天链接），那个页面就能向上述任意端点自动提交表单。攻击者看不到响应，但**写操作会真的执行**。最值钱的目标是 `admin/wechat_config.php` 和 `admin/epay_config.php` —— 把回调地址改成攻击者的域名，就等于把后续所有支付回调（含买家昵称、邮箱）劫走，而且管理员很可能几天都发现不了。其次是 `admin/products.php`（改价改库存）、`admin/menus.php`（往前台插链接）、`admin/unlock_ip.php` / `admin/ip_limits.php`（解除风控）。
+
+**为什么现在不做**
+本轮修复的范围是登录入口本身（未认证攻击面）。补齐这 14 个页面要逐页改表单 + 改处理分支，每个页面都得单独回归验证一遍「保存还能不能正常工作」；一次性混在安全修复里提交，出了回归很难定位是哪一改动引起的。这是一轮独立的工作。
+
+**想做的人从哪下手**
+不需要新写任何基础设施，照抄 `admin/coupons.php` 的用法即可：
+
+1. 文件顶部 `require_once '../lib/CsrfProtection.php';`（该页必须已 `session_start()`）；
+2. 表单里加 `<?php echo CsrfProtection::getTokenField(); ?>`；
+3. 处理 POST 的分支最前面加
+   ```php
+   if (!CsrfProtection::validateToken()) {
+       Logger::logCsrfAttempt(basename(__FILE__));
+       $error = '会话已过期或请求无效，请刷新页面后重试。';
+   } else {
+       // 原有处理逻辑
+   }
+   ```
+4. **注意 `admin/test_email.php`**：它不是普通表单提交，而是被 `admin/email_settings.php:132` 用 `fetch()` 调用的，补 token 要改成把 token 一并放进 fetch 的 body（或请求头），只在页面里塞一个 hidden input 是不够的。
+5. 改完必须**实际点一遍每个按钮**确认保存还正常，光看代码不算验证。
+
+建议一个页面一个 commit，方便出问题时单独回滚。
+
+---
+
+### 2. 后台 XSS 未逐页审计
+
+**是什么**
+前台（`index.php`、`product.php`、`choose_pay.php`、`payment-setup-guide.php`）统一走 `lib/SafeOutput.php` 转义，商品描述走白名单富文本。**后台没有做过同样的系统性审计**：多数字段确实套了 `htmlspecialchars`，但这是逐处人工写的，没有统一出口，也没人把 18 个后台页面的每个回显点过一遍。
+
+**影响谁 / 什么场景**
+后台会回显买家可控的数据 —— 订单里的**昵称**和**邮箱**是买家在下单时自己填的。如果某个后台页面把它们未转义地打印出来，一个下单时把昵称写成 `<script>…</script>` 的人，就能在管理员打开订单列表时在管理员浏览器里执行脚本（存储型 XSS）。结合第 1 条的 CSRF 缺口，杀伤力会显著放大。
+
+**为什么现在不做**
+这是「逐页读一遍每一个回显点」的体力活，没有捷径也没有可靠的自动化手段（本项目没有模板引擎，输出散落在 PHP 内联 HTML 里）。做一半比不做更危险，因为会给人「已经审过了」的错觉。
+
+**想做的人从哪下手**
+先用 `grep -rn 'echo \$\|<?= *\$\|<?php echo \$' admin/` 把所有直接回显变量的位置列出来，逐个判断数据来源；凡是来自 `orders`、`auto_cards`、`ip_limits` 这些含用户输入的表，一律改成 `SafeOutput::text()` / `SafeOutput::attr()`。验收方式：下一笔昵称为 `<img src=x onerror=alert(1)>` 的测试订单，然后把后台每个页面都打开一遍。
+
+---
+
+### 3. 旧 MD5 口令的管理员会被锁在外面
+
+**是什么**
+`admin/login.php` 原先同时接受 `password_hash()` 哈希和 `md5($password)`。MD5 分支已被删除（无盐、可被彩虹表秒查）。安装向导从来都是用 `password_hash()` 建号，所以正常安装的站点不受影响；但如果你的 `admin` 表是很久以前手工建的、口令存的是 MD5，**升级到这个版本之后你会登不上后台**，界面只会显示「用户名或密码错误」。
+
+**影响谁**
+只影响从早期版本升级上来、且口令仍是 MD5 的部署。全新安装不受影响。
+
+**为什么现在不做**（指为什么不保留兼容分支）
+保留 MD5 分支就等于保留一条弱口令后门，而登录端在此之前连爆破保护都没有。「登录时顺便升级成 bcrypt」听起来两全，但那要求先验证 MD5 —— 也就是那条后门必须一直开着，直到最后一个用户登录过为止，实际上等于永远开着。
+
+**怎么自救（一次性操作）**
+生成新哈希：
+
+```bash
+php -r "echo password_hash('你的新强口令', PASSWORD_DEFAULT), PHP_EOL;"
+```
+
+写回数据库：
+
+```sql
+UPDATE admin SET password = '<上面输出的哈希>' WHERE username = '你的用户名';
+```
+
+之后登录成功时 `password_needs_rehash()` 会自动把旧算法 / 旧 cost 的哈希平滑升级，不需要再手动操作。
+
+---
+
+### 4. 前端依赖已停止维护，且全部走第三方 CDN
+
+**是什么**
+后台大量页面用 Bootstrap **4.5.0** + jQuery **3.5.1**（两者均已停止维护），前台和部分后台页面又用 Bootstrap **5.1.3 / 5.2.3 / 5.3.0 / 5.3.1** —— 同一个项目里并存 **5 个 Bootstrap 版本**。所有资源都是 CDN 外链（stackpath / jsdelivr / cdnjs / bootcdn），本仓库不自带任何前端静态资源。
+
+**影响谁 / 什么场景**
+① 停止维护意味着后续出的漏洞不会再有补丁；② 外链意味着**可用性和隐私都依赖第三方**——CDN 挂了后台就变成裸 HTML，而且每个访客的 IP 都会暴露给 CDN 厂商（对需要满足 GDPR 的部署是个实际问题）；③ bootcdn 在部分地区可达性不稳定。
+
+**已经做了的部分**
+全部 65 处 CDN 引用已加 `integrity`（SRI）+ `crossorigin` + `referrerpolicy`，CDN 内容被篡改时浏览器会拒绝加载；原先无版本号的 `cdn.jsdelivr.net/npm/chart.js` 也已钉到 `chart.js@4.4.3`（无版本号的 URL 根本没法用 SRI 钉住）。**SRI 保护的是完整性，不解决版本老旧和可用性。**
+
+**为什么现在不做**
+Bootstrap 4 → 5 是破坏性升级：class 名大改（`form-group` / `btn-block` / `ml-*` `mr-*` 等全部变了）、jQuery 依赖被移除、JS 组件 API 变更。本项目所有页面都是手写内联 HTML，没有组件复用，升级等于把 20 多个页面的模板逐个重排一遍再逐个人工回归。这是一次 UI 重构，不是一次依赖升级。
+
+**想做的人从哪下手**
+不要一次全升。推荐顺序：
+1. **先自托管**（收益大、风险小）：把这几个文件下载到 `assets/` 目录，改成相对路径引用，顺手去掉 `integrity`/`crossorigin`。这一步立刻解决可用性和隐私问题，且不改任何 class 名。
+2. **再统一版本**：先把所有页面统一到 Bootstrap 5.3.x，用 [官方 v4→v5 迁移文档](https://getbootstrap.com/docs/5.3/migration/) 逐页改 class。
+3. **最后去 jQuery**：Bootstrap 5 不再依赖 jQuery，`admin/js/form-submit.js` 里的少量用法换成原生 DOM API 即可。
+
+---
+
+### 5. 没有 Dockerfile，也没有一键启动脚本
+
+**是什么**
+README 曾经写着 `bash start.sh` / `bash stop.sh` 和 `docker build -t ajieshop .`，但这三样东西从来没有提交进仓库（`git ls-files` 里一个都没有）。这些段落已从 README 删除，**现在没有容器化方案，也没有一键启动**。
+
+**影响谁**
+想快速试一下、或者想在 CI 里跑起来的人。目前只能手动起 MySQL + `php -S`，README 的[「怎么用」](#-怎么用)一节有完整步骤。
+
+**为什么现在不做**
+这个应用的安装向导会往 document root 写 `.env` 和 `install.lock`，容器化要一并决定：这两个文件放哪个 volume、镜像要不要预置一个已安装状态、MySQL 是同镜像还是 compose 起。随手扔一个跑不通或跑得半通的 Dockerfile，比没有更糟 —— 它会变成 issue 的主要来源。而删掉 README 里指向不存在文件的段落是立刻能做且必须做的，所以先做了那一步。
+
+**想做的人从哪下手**
+做 `docker-compose.yml`（php-fpm + nginx + mysql）比做单个 Dockerfile 更合适。关键点：把 `.env`、`install.lock`、`logs/`、`admin/uploads/` 声明成 volume；nginx 配置直接照抄 [docs/INSTALLATION.md](docs/INSTALLATION.md)（**注意里面的 `deny` 规则必须写在 `location ~ \.php$` 之前，否则不生效**）；镜像里**不要**预置 `install.lock`。验收标准：`docker compose up` 之后浏览器能走完安装向导、能上架商品、`https://…/.env` 访问不到。
+
+---
+
+### 6. `admin/uploads/` 没有上传类型白名单审计
+
+**是什么**
+仓库约定了 `admin/uploads/` 作为上传目录（`docs/INSTALLATION.md` 里会给它加写权限），但**没有人系统审计过上传入口的类型校验**：有没有扩展名白名单、有没有校验 MIME、有没有重命名、会不会保留 `.php` 后缀。
+
+**影响谁 / 什么场景**
+只在管理员账号被攻破、或结合第 1 条的 CSRF 之后才谈得上利用。但一旦成立，且 Web 服务器把该目录当 PHP 执行，就是从「后台被入侵」直接升级成「服务器被拿下」。
+
+**为什么现在不做**
+本轮范围是数据泄露和未认证攻击面。这条需要先把上传链路读一遍、再实际传几个恶意样本验证，属于独立的一轮。
+
+**眼下怎么兜底（部署方现在就该做）**
+在 Web 服务器层面禁止该目录执行 PHP：
+
+```nginx
+location ^~ /admin/uploads/ {
+    location ~ \.php$ { deny all; }
+}
+```
+
+**想做的人从哪下手**
+先 `grep -rn '\$_FILES' admin/` 找出所有上传入口，逐个补：扩展名白名单（只允许图片）、`finfo` 校验真实 MIME、强制服务端重命名（不要用用户提交的文件名）、拒绝任何双扩展名。
+
+---
+
+### 7. git 历史里残留着已被移除的凭据
+
+**是什么**
+早期版本的 `rainbow_notify.php` 把一条易支付商户密钥**明文写在源码里**，另外 `logs/` 下曾提交过含真实邮箱的订单日志，`database.sql` 里曾有作者的 SMTP 账号口令。**当前版本这些都已经清除**（密钥改为从配置读取，日志和演示数据已删），但它们**仍然留在 git 提交历史里**，任何人 `git log -p` 都能翻出来。
+
+**影响谁**
+主要影响原作者本人的那几个账号；对下游部署者没有直接影响 —— 你部署的是当前版本，里面没有任何硬编码凭据。
+
+**为什么现在不做**
+彻底清除要用 `git filter-repo` 重写全部历史再强推，这会打断所有已存在的 fork 和 clone，是一个需要仓库所有者拍板的破坏性操作，不应该由一次常规修复顺手做掉。
+
+**正确的处置顺序**
+1. **先在服务商那边作废并轮换**这些凭据 —— 这一步最重要，而且做完之后历史里留着的就只是一串废字符串了。**只从最新版本删掉是不够的**，参见 [SECURITY.md](SECURITY.md) 的「密钥泄露」一节。
+2. 再评估是否值得为此重写历史。多数情况下，轮换之后不重写是可以接受的。
+
+---
+
+### 8. 其他已知项（不影响安全，但接手前该知道）
+
+| 项 | 说明 |
+|---|---|
+| **没有自动化测试，也没有 CI** | 每次改动只能人工验证。改支付链路（`order.php` / `notify.php` / `notify_url.php`）时务必实际走一笔小额真实订单，光看代码不算验证。 |
+| **后台没有多用户和权限分级** | 只有一个管理员角色，`admin` 表里所有账号权限完全相同，没有操作审计到人。 |
+| **`rainbow_notify.php` 与 `notify_url.php` 功能重叠** | 后者是走 `EpayCore::verifyNotify()` 的正式实现，前者是简化版，只在你手动把它配成回调地址时才会被用到。二选一保留是合理的清理方向。 |
+| **微信 API 密钥的 AES-128-ECB 加密不是强保护** | 解密密钥 `$encryption_key` 就写在 `config.php` 里 —— 能读到数据库的人通常也能读到 `config.php`。它的作用仅限于防止数据库导出文件被随手翻到，**不要当成密钥托管方案**。想做得更好：把密钥改从环境变量读取，并换用带认证的模式（如 AES-256-GCM）。 |
+| **`admin/manage_card_tasks.php:32` 有字符串拼接 SQL** | ```$pdo->exec("UPDATE products SET is_autocard = 1 WHERE id IN ($ids_str)")```。**这不是注入**：`$ids_str` 来自 `implode(',', array_map('intval', $autocard_ids))`，`intval()` 保证每个元素都是整数，拼出来的只可能是 `1,2,3` 这种形式。写在这里是为了省掉后人反复怀疑、反复重新验证一遍。真要改的话，用 `IN` 的占位符展开（`str_repeat('?,', count($ids))`）会更让人放心。 |
+| **前台是内联 HTML，没有模板层** | 20 多个 PHP 文件里 HTML 和逻辑混写，改 UI 要逐文件改。这也是第 4 条升级 Bootstrap 成本高的根本原因。 |
+| **`admin/js/form-submit.js` 是死代码** | 仓库里带着这个文件，但没有任何 PHP 页面引用它（`grep -rln form-submit.js --include='*.php' .` 为空）。要么接上，要么删掉。 |
 
 ---
 
