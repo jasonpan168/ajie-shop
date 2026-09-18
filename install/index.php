@@ -9,8 +9,13 @@ if (!isset($_SESSION['form_token'])) {
 // 标记正在安装，防止config.php建立数据库连接
 define('INSTALLING', true);
 
+// 刚刚在本次会话里装完 —— 允许停留在第 3 步看完成页。
+// 否则第 2 步写完 install.lock 后跳到 ?step=3，会被下面的锁文件检查立刻踢回首页，
+// 「请立即删除 install/ 目录」这句最关键的提示用户根本看不到。
+$install_completed = !empty($_SESSION['install_completed']);
+
 // 检查是否已安装（第一道防线：安装锁文件）
-if (file_exists(__DIR__ . '/../install.lock')) {
+if (file_exists(__DIR__ . '/../install.lock') && !$install_completed) {
     header('Location: ../');
     exit;
 }
@@ -55,18 +60,21 @@ function installer_refuse_if_installed($dbHost, $dbUser, $dbPass, $dbName) {
 }
 
 // 环境变量 / .env 里若已有可用的数据库配置，进向导前就先查一遍
-installer_refuse_if_installed(
-    (string)(getenv('DB_HOST') ?: ''),
-    (string)(getenv('DB_USER') ?: ''),
-    (string)(getenv('DB_PASS') !== false ? getenv('DB_PASS') : ''),
-    (string)(getenv('DB_NAME') ?: '')
-);
+// （本次会话刚装完的完成页除外，否则会被自己刚建的管理员挡住）
+if (!$install_completed) {
+    installer_refuse_if_installed(
+        (string)(getenv('DB_HOST') ?: ''),
+        (string)(getenv('DB_USER') ?: ''),
+        (string)(getenv('DB_PASS') !== false ? getenv('DB_PASS') : ''),
+        (string)(getenv('DB_NAME') ?: '')
+    );
+}
 
 $step = isset($_GET['step']) ? $_GET['step'] : 1;
 $error = '';
 $success = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$install_completed) {
     // 验证表单令牌
     if (!isset($_POST['form_token']) || !isset($_SESSION['form_token']) || 
         $_POST['form_token'] !== $_SESSION['form_token']) {
