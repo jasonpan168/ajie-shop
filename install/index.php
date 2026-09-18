@@ -93,9 +93,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $pdo->prepare("INSERT INTO admin (username, password) VALUES (?, ?)");
             $stmt->execute([$adminUser, $adminPass]);
             
-            // 保存数据库配置
-            $config = "<?php\n// 调试模式\ndefine('DEBUG_MODE', false);\n\n// 标记安装状态\n\$config = array();\n\$config['installed'] = file_exists(__DIR__ . '/install.lock');\n\n// 数据库配置\n\$db_host = '$dbHost';\n\$db_name = '$dbName';\n\$db_user = '$dbUser';\n\$db_pass = '$dbPass';\n\n// 只在系统已安装的情况下建立数据库连接\nif (!defined('INSTALLING')) {\n    try {\n        \$pdo = new PDO(\"mysql:host=\$db_host;dbname=\$db_name;charset=utf8\", \$db_user, \$db_pass);\n        \$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);\n    } catch (PDOException \$e) {\n        die(\"数据库连接失败：\" . \$e->getMessage());\n    }\n}\n\n// 微信支付配置默认值（当数据库中没有配置记录时使用）\n\$default_appid = '在此填写微信支付AppID';\n\$default_mch_id = '在此填写微信支付商户号';\n\$default_api_key_encrypted = '在此填写加密后的微信支付API密钥';\n\$default_notify_url = '在此填写支付通知回调URL';\n\n// 加密密钥\n\$encryption_key = '在此填写16字节的加密密钥';\n\n// 解密函数\nfunction decrypt_data(\$data, \$key) {\n    return openssl_decrypt(\$data, 'AES-128-ECB', \$key);\n}\n\n// 默认解密得到商户 API 密钥\n\$default_api_key = decrypt_data(\$default_api_key_encrypted, \$encryption_key);\n\n// 从数据库中读取微信支付配置\n\$configData = false;\nif (!defined('INSTALLING') && isset(\$pdo)) {\n    try {\n        \$stmt = \$pdo->query(\"SELECT * FROM wechat_config LIMIT 1\");\n        \$configData = \$stmt->fetch(PDO::FETCH_ASSOC);\n    } catch (Exception \$ex) {\n        \$configData = false;\n    }\n}\n\nif (\$configData) {\n    \$merchant_appid = \$configData['appid'];\n    \$merchant_mchid = \$configData['mch_id'];\n    \$merchant_api_key_encrypted = \$configData['api_key'];\n    \$merchant_api_key = decrypt_data(\$merchant_api_key_encrypted, \$encryption_key);\n    \$notify_url = \$configData['notify_url'];\n} else {\n    \$merchant_appid = \$default_appid;\n    \$merchant_mchid = \$default_mch_id;\n    \$merchant_api_key = \$default_api_key;\n    \$notify_url = \$default_notify_url;\n}\n";
-            file_put_contents(__DIR__ . '/../config.php', $config);
+            // 保存数据库配置到 .env
+            //
+            // 注意：这里只写 .env，不再重写 config.php。
+            // 以前的做法是用一个内联模板把 config.php 整个覆盖掉，
+            // 结果是仓库里对 config.php 的任何修复（.env 加载器、安装锁检查等）
+            // 装完一次就被抹掉，而且数据库口令会被明文写进一个被版本控制跟踪的文件。
+            $envPath = __DIR__ . '/../.env';
+            $envLines = array(
+                '# 由安装向导生成于 ' . date('Y-m-d H:i:s'),
+                '# 该文件含数据库口令，已被 .gitignore 排除，请勿提交、勿对外暴露。',
+                'DB_HOST=' . $dbHost,
+                'DB_NAME=' . $dbName,
+                'DB_USER=' . $dbUser,
+                'DB_PASS=' . $dbPass,
+                '',
+            );
+            if (file_put_contents($envPath, implode("\n", $envLines)) === false) {
+                throw new RuntimeException('ENV_WRITE_FAILED');
+            }
+            @chmod($envPath, 0600);
             
             // 创建安装锁定文件
             file_put_contents(__DIR__ . '/../install.lock', date('Y-m-d H:i:s'));
@@ -108,6 +125,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         } catch (PDOException $e) {
             $error = '创建管理员账户失败：' . $e->getMessage();
+        } catch (Exception $e) {
+            if ($e->getMessage() === 'ENV_WRITE_FAILED') {
+                $error = '无法写入 .env 文件，请检查网站根目录的写入权限后重试。';
+            } else {
+                $error = '安装失败，请查看服务器错误日志。';
+            }
         }
     }
 }

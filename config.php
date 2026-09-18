@@ -7,7 +7,8 @@
  * 微信支付配置和加密密钥等核心系统参数。
  * 
  * 使用说明：
- * 1. 请根据实际环境修改数据库连接信息
+ * 1. 数据库连接信息请写在项目根目录的 .env 里（参考 .env.example），
+ *    或直接用系统环境变量注入；环境变量优先于 .env
  * 2. 配置微信支付相关参数
  * 3. 设置加密密钥用于API密钥加密
  * 
@@ -23,6 +24,76 @@ if (!file_exists($install_lock_file) && !defined('INSTALLING')) {
 
 // 调试模式
 define('DEBUG_MODE', false);
+
+/**
+ * 零依赖的 .env 加载器。
+ *
+ * - 真实的系统环境变量优先级最高，.env 不会覆盖它；
+ * - 以 # 或 ; 开头的行视为注释，空行忽略；
+ * - 值两端的单/双引号会被去掉；
+ * - 文件不存在或解析失败都不致命，直接回落到系统环境变量 / 代码默认值。
+ */
+if (!function_exists('load_env_file')) {
+    function load_env_file($path) {
+        if (!is_file($path) || !is_readable($path)) {
+            return false;
+        }
+        $lines = @file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        if (!is_array($lines)) {
+            return false;
+        }
+
+        $pairs = array();
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line === '' || $line[0] === '#' || $line[0] === ';') {
+                continue; // 注释行
+            }
+            if (strpos($line, '=') === false) {
+                continue; // 无法识别的行，跳过而不报错
+            }
+            $parts = explode('=', $line, 2);
+            $key = trim($parts[0]);
+            $value = isset($parts[1]) ? trim($parts[1]) : '';
+
+            // 兼容 "export FOO=bar" 写法
+            if (strpos($key, 'export ') === 0) {
+                $key = trim(substr($key, 7));
+            }
+            if ($key === '' || !preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $key)) {
+                continue;
+            }
+
+            // 去掉成对的引号
+            $len = strlen($value);
+            if ($len >= 2) {
+                $first = $value[0];
+                $last = $value[$len - 1];
+                if (($first === '"' && $last === '"') || ($first === "'" && $last === "'")) {
+                    $value = substr($value, 1, -1);
+                }
+            }
+
+            $pairs[$key] = $value;
+        }
+
+        foreach ($pairs as $key => $value) {
+            // 真实环境变量优先：已存在就不覆盖
+            if (getenv($key) !== false) {
+                continue;
+            }
+            putenv($key . '=' . $value);
+            $_ENV[$key] = $value;
+            if (!isset($_SERVER[$key])) {
+                $_SERVER[$key] = $value;
+            }
+        }
+        return true;
+    }
+}
+
+// 加载项目根目录下的 .env（若存在）
+load_env_file(__DIR__ . '/.env');
 
 // 标记安装状态
 $config = array();
