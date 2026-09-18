@@ -5,7 +5,7 @@
  * 该文件用于管理员创建新的自动卡密生成任务，包含任务名称、商品选择和卡密内容的处理
  * 
  * @author   Trae
- * @contact  contact@yewu.laikr.com
+ * @contact  https://github.com/jasonpan168/ajie-shop/issues
  * @date     2024-03-29
  */
 

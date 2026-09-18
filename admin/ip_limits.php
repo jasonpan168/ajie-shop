@@ -5,7 +5,7 @@
  * 该文件用于管理员查看和管理系统的IP访问限制记录，包括解除IP封禁等操作
  * 
  * @author   Trae
- * @contact  contact@yewu.laikr.com
+ * @contact  https://github.com/jasonpan168/ajie-shop/issues
  * @date     2024-03-29
  */
 

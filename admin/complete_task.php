@@ -5,7 +5,7 @@
  * 该文件用于处理管理员标记自动生成卡密任务为已完成的操作
  * 
  * @author   Trae
- * @contact  contact@yewu.laikr.com
+ * @contact  https://github.com/jasonpan168/ajie-shop/issues
  * @date     2024-03-29
  */
 

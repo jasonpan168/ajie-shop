@@ -5,7 +5,7 @@
  * 该文件用于管理员配置系统菜单，包括添加、编辑和删除菜单项等功能
  * 
  * @author   Trae
- * @contact  contact@yewu.laikr.com
+ * @contact  https://github.com/jasonpan168/ajie-shop/issues
  * @date     2024-03-29
  */
 

@@ -5,7 +5,7 @@
  * 该文件用于管理员查看和管理订单信息，包括订单列表、订单详情和批量删除等功能
  * 
  * @author   Trae
- * @contact  contact@yewu.laikr.com
+ * @contact  https://github.com/jasonpan168/ajie-shop/issues
  * @date     2024-03-29
  */
 

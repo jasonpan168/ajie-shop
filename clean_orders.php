@@ -4,7 +4,7 @@
  * 
  * 作者：阿杰
  * 电报群：https://t.me/+yK7diUyqmxI2MjZl
- * 作者邮箱：weijianao@gmail.com
+ * 项目地址：https://github.com/jasonpan168/ajie-shop
  * 作者油管：https://www.youtube.com/@ajieshuo
  * 开发日期：2025年2月6日
  * 首板开发完成日期：2025年3月31日

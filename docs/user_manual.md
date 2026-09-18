@@ -90,9 +90,12 @@ A: 请查看您的邮箱或其他通知方式，系统会自动发送订单信�
 3. 如发现系统异常，请立即联系管理员
 
 ## 联系方式
-- 电报群：https://t.me/+yK7diUyqmxI2MjZl
-- 邮箱：weijianao@gmail.com
-- YouTube频道：https://www.youtube.com/@ajieshuo
+
+- 问题反馈 / 功能建议：https://github.com/jasonpan168/ajie-shop/issues
+- 安全漏洞：请按 [SECURITY.md](../SECURITY.md) 私密报告，不要公开提 Issue
+
+> 本手册面向自建站点的管理员。终端买家遇到订单问题，请联系**你所购买站点的运营者**，
+> 而不是本项目仓库。
 
 ## 更新日志
 - 2025年3月31日：系统首版开发完成

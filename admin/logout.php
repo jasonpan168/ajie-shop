@@ -5,7 +5,7 @@
  * 该文件用于处理管理员退出登录操作，清除会话数据并重定向到登录页面
  * 
  * @author   Trae
- * @contact  contact@yewu.laikr.com
+ * @contact  https://github.com/jasonpan168/ajie-shop/issues
  * @date     2024-03-29
  */
 session_start();

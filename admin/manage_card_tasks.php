@@ -5,7 +5,7 @@
  * 该文件用于管理员管理自动发卡任务，包括任务列表查看、自动发卡商品设置等功能
  * 
  * @author   Trae
- * @contact  contact@yewu.laikr.com
+ * @contact  https://github.com/jasonpan168/ajie-shop/issues
  * @date     2024-03-29
  */
 

@@ -5,7 +5,7 @@
  * 该文件用于处理管理员删除自动卡密生成任务的操作，包括删除任务记录及相关卡密数据
  * 
  * @author   Trae
- * @contact  contact@yewu.laikr.com
+ * @contact  https://github.com/jasonpan168/ajie-shop/issues
  * @date     2024-03-29
  */
 

@@ -231,9 +231,9 @@
             <section id="contact" class="section">
                 <h2>联系方式</h2>
                 <div class="contact-info">
-                    <p>电报群：<a href="https://t.me/+yK7diUyqmxI2MjZl" target="_blank">https://t.me/+yK7diUyqmxI2MjZl</a></p>
-                    <p>邮箱：<a href="mailto:weijianao@gmail.com">weijianao@gmail.com</a></p>
-                    <p>YouTube频道：<a href="https://www.youtube.com/@ajieshuo" target="_blank">https://www.youtube.com/@ajieshuo</a></p>
+                    <p>问题反馈：<a href="https://github.com/jasonpan168/ajie-shop/issues" target="_blank">GitHub Issues</a></p>
+                    <p>安全漏洞：请通过 <a href="https://github.com/jasonpan168/ajie-shop/security/advisories/new" target="_blank">GitHub 私密通道</a> 报告，不要公开提 Issue</p>
+                    <p>本站订单问题请联系本站运营者，而不是开源项目仓库。</p>
                 </div>
             </section>
 

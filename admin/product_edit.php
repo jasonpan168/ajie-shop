@@ -5,7 +5,7 @@
  * 该文件用于管理员添加和编辑商品信息，包括商品基本信息、价格和状态等设置
  * 
  * @author   Trae
- * @contact  contact@yewu.laikr.com
+ * @contact  https://github.com/jasonpan168/ajie-shop/issues
  * @date     2024-03-29
  */
 
