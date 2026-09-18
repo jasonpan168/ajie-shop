@@ -27,7 +27,7 @@ CREATE TABLE `admin` (
   `username` varchar(50) NOT NULL,
   `password` varchar(255) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -54,7 +54,7 @@ CREATE TABLE `auto_card_tasks` (
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   `repeat_flag` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -63,7 +63,6 @@ CREATE TABLE `auto_card_tasks` (
 
 LOCK TABLES `auto_card_tasks` WRITE;
 /*!40000 ALTER TABLE `auto_card_tasks` DISABLE KEYS */;
-INSERT INTO `auto_card_tasks` VALUES (15,13,'自动发卡测试2','active','2025-03-30 19:53:58',1);
 /*!40000 ALTER TABLE `auto_card_tasks` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -85,7 +84,7 @@ CREATE TABLE `auto_cards` (
   PRIMARY KEY (`id`),
   KEY `task_id` (`task_id`),
   CONSTRAINT `auto_cards_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `auto_card_tasks` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=27 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -94,7 +93,6 @@ CREATE TABLE `auto_cards` (
 
 LOCK TABLES `auto_cards` WRITE;
 /*!40000 ALTER TABLE `auto_cards` DISABLE KEYS */;
-INSERT INTO `auto_cards` VALUES (26,15,'11111111111111111111111','unused','','2025-03-30 19:53:58','');
 /*!40000 ALTER TABLE `auto_cards` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -115,7 +113,7 @@ CREATE TABLE `coupons` (
   `used_order_no` varchar(50) DEFAULT NULL COMMENT '使用的订单号',
   PRIMARY KEY (`id`),
   UNIQUE KEY `code` (`code`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -124,7 +122,6 @@ CREATE TABLE `coupons` (
 
 LOCK TABLES `coupons` WRITE;
 /*!40000 ALTER TABLE `coupons` DISABLE KEYS */;
-INSERT INTO `coupons` VALUES (4,'VIPEEA52D29',1.00,'active','2025-03-29 01:04:27',NULL,NULL),(5,'VIP6892CA50',1.00,'active','2025-03-29 01:04:27',NULL,NULL),(6,'VIP90E2A576',1.00,'active','2025-03-29 01:04:27',NULL,NULL);
 /*!40000 ALTER TABLE `coupons` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -149,7 +146,7 @@ CREATE TABLE `email_settings` (
   `is_default` tinyint(1) DEFAULT '1' COMMENT '是否为默认通道',
   PRIMARY KEY (`id`),
   KEY `idx_channel_type` (`channel_type`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -158,7 +155,6 @@ CREATE TABLE `email_settings` (
 
 LOCK TABLES `email_settings` WRITE;
 /*!40000 ALTER TABLE `email_settings` DISABLE KEYS */;
-INSERT INTO `email_settings` VALUES (1,'smtp.mailgun.org',465,'XXX@163.com','shouquanma','阿杰商城','XXX@163.com','2025-02-15 06:59:41','2025-03-31 03:35:21','smtp',1);
 /*!40000 ALTER TABLE `email_settings` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -180,7 +176,7 @@ CREATE TABLE `epay_config` (
   `wxpay_enabled` tinyint(1) NOT NULL DEFAULT '1',
   `usdt_enabled` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -189,7 +185,6 @@ CREATE TABLE `epay_config` (
 
 LOCK TABLES `epay_config` WRITE;
 /*!40000 ALTER TABLE `epay_config` DISABLE KEYS */;
-INSERT INTO `epay_config` VALUES (1,'你的域名','1','1','https://你的域名/notify_url.php','https://你的域名/return_url.php',0,0,0);
 /*!40000 ALTER TABLE `epay_config` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -211,7 +206,7 @@ CREATE TABLE `ip_limits` (
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_ip` (`ip`)
-) ENGINE=InnoDB AUTO_INCREMENT=64 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -220,7 +215,6 @@ CREATE TABLE `ip_limits` (
 
 LOCK TABLES `ip_limits` WRITE;
 /*!40000 ALTER TABLE `ip_limits` DISABLE KEYS */;
-INSERT INTO `ip_limits` VALUES (44,'113.76.11.136','2025-03-30 03:17:41',1,0,0,'2025-03-30 03:17:41','2025-03-30 03:17:41'),(63,'95.135.181.49','2025-03-31 01:31:20',1,0,0,'2025-03-31 01:31:20','2025-03-31 01:31:20');
 /*!40000 ALTER TABLE `ip_limits` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -237,7 +231,7 @@ CREATE TABLE `menus` (
   `url` varchar(255) NOT NULL,
   `sort_order` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -246,7 +240,6 @@ CREATE TABLE `menus` (
 
 LOCK TABLES `menus` WRITE;
 /*!40000 ALTER TABLE `menus` DISABLE KEYS */;
-INSERT INTO `menus` VALUES (1,'订阅油管','https://www.youtube.com/@ajieshuo?sub_confirmation=1',0),(2,'电报交流群','https://t.me/+yK7diUyqmxI2MjZl',0);
 /*!40000 ALTER TABLE `menus` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -276,7 +269,7 @@ CREATE TABLE `orders` (
   `ip` varchar(45) DEFAULT NULL COMMENT 'IP地址',
   PRIMARY KEY (`id`),
   KEY `idx_ip_created` (`ip`,`created_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=258 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -307,7 +300,7 @@ CREATE TABLE `products` (
   `is_autocard` tinyint(1) NOT NULL DEFAULT '0',
   `status` int(11) DEFAULT '1',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -316,7 +309,6 @@ CREATE TABLE `products` (
 
 LOCK TABLES `products` WRITE;
 /*!40000 ALTER TABLE `products` DISABLE KEYS */;
-INSERT INTO `products` VALUES (1,'这是商品','这是商品','测试商品',1.00,990,'https://你的域名/images/sample-product.png',0,0,1),(5,'测试下架','测试','',1.00,100,'https://你的域名/images/sample-product.png',8,0,0),(9,'这是商品','商品','测 his',1.00,100,'https://你的域名/images/sample-product.png',1,0,1),(13,'这是商品','测试','',1.00,1107,'https://你的域名/images/sample-product.png',0,1,1);
 /*!40000 ALTER TABLE `products` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -334,7 +326,7 @@ CREATE TABLE `system_config` (
   `description` varchar(255) DEFAULT NULL COMMENT '配置描述',
   PRIMARY KEY (`id`),
   UNIQUE KEY `key` (`key`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -343,6 +335,7 @@ CREATE TABLE `system_config` (
 
 LOCK TABLES `system_config` WRITE;
 /*!40000 ALTER TABLE `system_config` DISABLE KEYS */;
+-- 系统运行必需的默认配置行（中性值，不含任何真实或演示数据）
 INSERT INTO `system_config` VALUES (1,'coupon_enabled','1','是否启用优惠码功能：1-启用，0-禁用');
 /*!40000 ALTER TABLE `system_config` ENABLE KEYS */;
 UNLOCK TABLES;
@@ -369,7 +362,6 @@ CREATE TABLE `system_settings` (
 
 LOCK TABLES `system_settings` WRITE;
 /*!40000 ALTER TABLE `system_settings` DISABLE KEYS */;
-INSERT INTO `system_settings` VALUES ('wxpusher_admin_uid','去绑定','2025-03-31 03:36:00','2025-03-31 03:36:00'),('wxpusher_app_token','去获取','2025-03-31 03:36:00','2025-03-31 03:36:00'),('wxpusher_enabled','0','2025-03-31 03:36:00','2025-03-31 03:36:00'),('wxpusher_order_notify','0','2025-03-31 03:36:00','2025-03-31 03:36:00'),('wxpusher_payment_notify','0','2025-03-31 03:36:00','2025-03-31 03:36:00');
 /*!40000 ALTER TABLE `system_settings` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -387,7 +379,7 @@ CREATE TABLE `telegram_config` (
   `enabled` tinyint(1) DEFAULT '1',
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -396,7 +388,6 @@ CREATE TABLE `telegram_config` (
 
 LOCK TABLES `telegram_config` WRITE;
 /*!40000 ALTER TABLE `telegram_config` DISABLE KEYS */;
-INSERT INTO `telegram_config` VALUES (1,'参考文档','电报 ID',0,'2025-03-31 03:35:42');
 /*!40000 ALTER TABLE `telegram_config` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -416,7 +407,7 @@ CREATE TABLE `wechat_config` (
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `enabled` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -425,7 +416,6 @@ CREATE TABLE `wechat_config` (
 
 LOCK TABLES `wechat_config` WRITE;
 /*!40000 ALTER TABLE `wechat_config` DISABLE KEYS */;
-INSERT INTO `wechat_config` VALUES (1,'1','1','1','https:// 你的域名/notify.php','2025-03-31 03:33:34',1);
 /*!40000 ALTER TABLE `wechat_config` ENABLE KEYS */;
 UNLOCK TABLES;
 
