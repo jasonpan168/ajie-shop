@@ -1,0 +1,34 @@
+# 安装锁 —— 由安装向导在本机生成，绝不能提交
+# （一旦提交，别人克隆下来会被判定为「已安装」，安装向导进不去、数据库连不上）
+install.lock
+
+# 本地环境变量（可能含真实数据库口令），只提交 .env.example
+.env
+.env.local
+.env.*.local
+
+# 运行时日志
+*.log
+logs/
+notify.log
+notify_debug.log
+rainbow_notify.log
+
+# 安装向导生成的本地配置备份
+config.local.php
+config.php.bak
+
+# 上传的资源
+uploads/
+
+# 操作系统 / 编辑器产物
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*~
+
+# 依赖
+/vendor/
+node_modules/
