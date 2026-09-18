@@ -57,7 +57,7 @@ if ($logRawCallback) {
 }
 
 // 获取微信传来的签名，并移除
-$wechatSign = $result['sign'];
+$wechatSign = isset($result['sign']) ? (string)$result['sign'] : '';
 unset($result['sign']);
 
 // 签名函数：过滤空值及 sign, sign_type 后追加 &key=KEY
@@ -81,7 +81,10 @@ if ($logRawCallback) {
 }
 
 // 验证签名和支付状态（使用 === 和统一大小写）
-if (strtoupper($localSign) === strtoupper($wechatSign) && $result['return_code'] == 'SUCCESS' && $result['result_code'] == 'SUCCESS') {
+// 用 hash_equals 做定长时间比较，避免通过响应时间逐字节爆破签名
+if (hash_equals(strtoupper($localSign), strtoupper($wechatSign))
+    && ($result['return_code'] ?? '') === 'SUCCESS'
+    && ($result['result_code'] ?? '') === 'SUCCESS') {
     $order_no = $result['out_trade_no'];
     $total_fee = $result['total_fee']; // 单位：分
 
