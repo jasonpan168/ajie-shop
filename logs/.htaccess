@@ -1,0 +1,6 @@
+# logs 目录下的任何文件都不允许通过 Web 访问
+Require all denied
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>

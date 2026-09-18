@@ -184,7 +184,8 @@ git clone https://github.com/jasonpan168/ajie-shop.git
 cd ajie-shop
 chown -R www-data:www-data .
 chmod -R 755 .
-chmod -R 777 logs admin/uploads
+chmod -R 750 logs admin/uploads   # 不要用 777；只要 Web 用户可写即可
+chown -R www-data:www-data logs admin/uploads
 
 # 6. 导入数据库
 mysql -u ajie_user -p ajie_shop < database.sql
@@ -216,6 +217,43 @@ server {
     access_log /var/log/nginx/ajie-shop-access.log;
     error_log /var/log/nginx/ajie-shop-error.log warn;
 
+    # ---- 敏感文件必须放在 PHP 处理规则「之前」 ----
+    # Nginx 的正则 location 按书写顺序匹配，第一个命中的就生效。
+    # 如果把这些 deny 写在 `location ~ \.php$` 后面，config.php 会先被
+    # PHP 规则吃掉，deny 永远不会生效。
+
+    # 日志、数据库导出、环境变量、备份文件一律禁止访问
+    location ~* \.(log|sql|env|ini|bak|swp|dist|example)$ {
+        deny all;
+        access_log off;
+        log_not_found off;
+    }
+
+    # 整个 logs 目录不可访问
+    location ^~ /logs/ {
+        deny all;
+        access_log off;
+        log_not_found off;
+    }
+
+    # 装完必须删除 install/ 目录；万一忘了删，这条兜底
+    # （删除后请把这段注释掉，否则重装时进不去向导）
+    # location ^~ /install/ {
+    #     deny all;
+    # }
+
+    # 点开头的文件（.env / .git / .htaccess ...）
+    location ~ /\. {
+        deny all;
+        access_log off;
+        log_not_found off;
+    }
+
+    # config.php 只应被 PHP include，不应被直接请求
+    location ~ /config\.php$ {
+        deny all;
+    }
+
     # PHP 处理
     location ~ \.php$ {
         fastcgi_pass unix:/run/php/php8.1-fpm.sock;
@@ -228,15 +266,6 @@ server {
     location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
         expires 7d;
         add_header Cache-Control "public, immutable";
-    }
-
-    # 隐藏敏感文件
-    location ~ /\. {
-        deny all;
-    }
-
-    location ~ /config\.php$ {
-        deny all;
     }
 }
 EOF
@@ -324,7 +353,8 @@ wget -O install.sh http://download.bt.cn/install/install_lts.sh && bash install.
    cd /www/wwwroot/ajie-shop
    git clone https://github.com/jasonpan168/ajie-shop.git .
    chmod -R 755 .
-   chmod -R 777 logs admin/uploads
+   chmod -R 750 logs admin/uploads   # 不要用 777；只要 Web 用户可写即可
+chown -R www-data:www-data logs admin/uploads
    ```
 
 5. **导入数据库**

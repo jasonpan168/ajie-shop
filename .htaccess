@@ -1,0 +1,43 @@
+# ---------------------------------------------------------------------------
+# Apache 访问保护
+#
+# 仅在 Apache 且 AllowOverride 已开启时生效。
+# 用 Nginx 的部署请照抄 docs/INSTALLATION.md 里的 deny 规则，
+# .htaccess 对 Nginx 完全无效。
+# ---------------------------------------------------------------------------
+
+# 关闭目录索引
+Options -Indexes
+
+# 禁止直接下载日志、数据库导出、环境变量和配置文件
+<FilesMatch "\.(log|sql|env|ini|bak|swp|dist|example)$">
+    Require all denied
+</FilesMatch>
+
+# 兼容 Apache 2.2
+<IfModule !mod_authz_core.c>
+    <FilesMatch "\.(log|sql|env|ini|bak|swp|dist|example)$">
+        Order allow,deny
+        Deny from all
+    </FilesMatch>
+</IfModule>
+
+# config.php 只应被 PHP include，不应被浏览器直接请求
+<Files "config.php">
+    Require all denied
+</Files>
+
+# .env / .git 等点开头的文件
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# logs 目录整体不可访问
+RedirectMatch 404 ^/logs/.*$
+
+# 安全响应头
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "no-referrer-when-downgrade"
+</IfModule>

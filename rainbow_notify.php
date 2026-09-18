@@ -11,21 +11,36 @@
 
 // 引入数据库连接文件
 require_once 'db.php';
+// 易支付配置（后台「易支付配置」→ epay_config 表，或 EPAY_* 环境变量）
+require_once 'lib/epay.config.php';
 
 // ----------------------
-// 配置参数（请替换为你的实际信息）
+// 配置参数
 // ----------------------
-$merchant_id = "1000";  // 彩虹易支付商户号（示例）
-$merchant_key = "4CPvm60127WPjiXMp7j9ZV72U9X9zZ6W";  // 彩虹易支付密钥（明文）
+// 商户号与密钥一律从配置读取，绝不能写死在源码里：
+// 写死的密钥会随仓库公开，任何人都能伪造「支付成功」回调把订单刷成已支付。
+$merchant_id  = $epay_config['pid'];
+$merchant_key = $epay_config['key'];
 
 // ----------------------
 // 获取回调参数（假设为 GET 方式，如为 POST 则替换 $_GET 为 $_POST）
 // ----------------------
 $data = $_GET;
 
-// 写入日志（可选），便于调试（确保有写权限）
-$logFile = 'rainbow_notify.log';
-file_put_contents($logFile, date('Y-m-d H:i:s') . " - Received data:\n" . print_r($data, true) . "\n", FILE_APPEND);
+// 写入日志（可选），便于调试
+// 日志必须落在 logs/ 目录，不能写在网站根目录（否则可被公网直接下载）。
+$logDir = __DIR__ . '/logs';
+if (!is_dir($logDir)) {
+    @mkdir($logDir, 0750, true);
+}
+$logFile = $logDir . '/rainbow_notify.log';
+// 原始回调参数含买家信息与签名，生产默认不记录，排错时设 PAY_LOG_RAW=1 打开
+$logRawCallback = (getenv('PAY_LOG_RAW') === '1');
+if ($logRawCallback) {
+    file_put_contents($logFile, date('Y-m-d H:i:s') . " - Received data:\n" . print_r($data, true) . "\n", FILE_APPEND);
+} else {
+    file_put_contents($logFile, date('Y-m-d H:i:s') . " - Received callback\n", FILE_APPEND);
+}
 
 // 检查必要参数
 if (empty($data['sign']) || empty($data['out_trade_no']) || empty($data['trade_status'])) {
@@ -54,13 +69,14 @@ $signStr = rtrim($signStr, "&");
 $signStr .= $merchant_key;
 $calculated_sign = md5($signStr);
 
-// 将签名对比信息写入日志
-file_put_contents($logFile, "签名字符串: $signStr\n计算签名: $calculated_sign\n接收到的签名: $received_sign\n", FILE_APPEND);
+// 将签名对比结果写入日志
+// 注意：$signStr 末尾拼接了商户密钥，绝不能整串写进日志，否则等于把密钥写到磁盘上。
+file_put_contents($logFile, "签名校验: " . ($calculated_sign === $received_sign ? "通过" : "不通过") . "\n", FILE_APPEND);
 
 // ----------------------
 // 验证签名和交易状态
 // ----------------------
-if ($calculated_sign == $received_sign && $data['trade_status'] == 'TRADE_SUCCESS') {
+if (hash_equals($calculated_sign, (string)$received_sign) && $data['trade_status'] == 'TRADE_SUCCESS') {
     $order_no = $data['out_trade_no'];
     // 更新订单状态为 'paid'，假设订单表 orders 中 order_no 为唯一标识
     try {

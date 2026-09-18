@@ -22,13 +22,29 @@ require_once 'config.php';
 require_once 'send_mail.php';
 require_once 'lib/Logger.php';
 
-$debugLogFile = __DIR__ . '/notify_debug.log';
-$logFile = __DIR__ . '/notify.log';
+// 日志一律写在 logs/ 目录里，绝不能写在网站根目录：
+// 根目录下的 notify.log 可以被任何人用 https://站点/notify.log 直接拖走，
+// 里面是全部订单号、金额、买家邮箱和昵称。
+$logDir = __DIR__ . '/logs';
+if (!is_dir($logDir)) {
+    @mkdir($logDir, 0750, true);
+}
+$debugLogFile = $logDir . '/notify_debug.log';
+$logFile = $logDir . '/notify.log';
+
+// 是否记录支付回调的原始报文与解析结果。
+// 这些内容含买家邮箱、昵称、签名值和卡密，属于个人信息与敏感数据，
+// 生产环境默认关闭，只在排错时临时设置环境变量 PAY_LOG_RAW=1 打开。
+$logRawCallback = (getenv('PAY_LOG_RAW') === '1');
 
 // 记录原始 POST 数据
 $rawData = file_get_contents('php://input');
-file_put_contents($debugLogFile, date('Y-m-d H:i:s') . " Raw POST data:\n" . $rawData . "\n", FILE_APPEND);
-file_put_contents($logFile, date('Y-m-d H:i:s') . " - Received XML:\n" . $rawData . "\n", FILE_APPEND);
+if ($logRawCallback) {
+    file_put_contents($debugLogFile, date('Y-m-d H:i:s') . " Raw POST data:\n" . $rawData . "\n", FILE_APPEND);
+    file_put_contents($logFile, date('Y-m-d H:i:s') . " - Received XML:\n" . $rawData . "\n", FILE_APPEND);
+} else {
+    file_put_contents($logFile, date('Y-m-d H:i:s') . " - Received callback (" . strlen($rawData) . " bytes)\n", FILE_APPEND);
+}
 
 if (!$rawData) {
     exit('No data received');
@@ -36,7 +52,9 @@ if (!$rawData) {
 
 // 解析 XML 数据为数组
 $result = json_decode(json_encode(simplexml_load_string($rawData, 'SimpleXMLElement', LIBXML_NOCDATA)), true);
-file_put_contents($logFile, "Parsed result:\n" . print_r($result, true) . "\n", FILE_APPEND);
+if ($logRawCallback) {
+    file_put_contents($logFile, "Parsed result:\n" . print_r($result, true) . "\n", FILE_APPEND);
+}
 
 // 获取微信传来的签名，并移除
 $wechatSign = $result['sign'];
@@ -58,7 +76,9 @@ function getLocalSign($params, $key) {
 // 从 config.php 获取解密后的商户密钥
 $merchant_key_local = $merchant_api_key;
 $localSign = getLocalSign($result, $merchant_key_local);
-file_put_contents($logFile, "Local sign: $localSign, WeChat sign: $wechatSign\n", FILE_APPEND);
+if ($logRawCallback) {
+    file_put_contents($logFile, "Local sign: $localSign, WeChat sign: $wechatSign\n", FILE_APPEND);
+}
 
 // 验证签名和支付状态（使用 === 和统一大小写）
 if (strtoupper($localSign) === strtoupper($wechatSign) && $result['return_code'] == 'SUCCESS' && $result['result_code'] == 'SUCCESS') {
@@ -103,7 +123,9 @@ if (strtoupper($localSign) === strtoupper($wechatSign) && $result['return_code']
     if ($orderData) {
         $wxPusher->sendPaymentNotification($orderData);
     }
-    file_put_contents($logFile, "Attach data:\n" . print_r($attach, true) . "\n", FILE_APPEND);
+    if ($logRawCallback) {
+        file_put_contents($logFile, "Attach data:\n" . print_r($attach, true) . "\n", FILE_APPEND);
+    }
     
     $product_id = isset($attach['product_id']) ? intval($attach['product_id']) : 0;
     $quantity   = isset($attach['quantity']) ? intval($attach['quantity']) : 1;
@@ -319,7 +341,7 @@ if (strtoupper($localSign) === strtoupper($wechatSign) && $result['return_code']
                         $cardContent = "发卡失败，请联系客服。";
                     }
                 }
-                file_put_contents($logFile, "Card issued for order $order_no: " . $cardContent . "\n", FILE_APPEND);
+                file_put_contents($logFile, "Card issued for order $order_no" . ($logRawCallback ? ": " . $cardContent : " (content redacted)") . "\n", FILE_APPEND);
                 
                 // 发送自动发卡邮件
                 $subject_card = "阿杰平台：您的自动发卡内容已发放";
