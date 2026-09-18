@@ -13,7 +13,7 @@
  * 提供数据库连接和错误处理功能，使用单例模式管理数据库连接，
  * 包含错误日志记录和异常处理机制，确保数据库操作的安全性。
  * 
- * 未经允许禁止商用，仅供学习研究个人使用
+ * @license AGPL-3.0-or-later  https://github.com/jasonpan168/ajie-shop
  */
 
 require_once 'config.php';

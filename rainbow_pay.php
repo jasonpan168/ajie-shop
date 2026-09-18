@@ -13,7 +13,7 @@
  * 处理彩虹易支付的订单创建流程，生成订单记录，
  * 调用支付SDK获取支付链接，并进行页面跳转。
  * 
- * 未经允许禁止商用，仅供学习研究个人使用
+ * @license AGPL-3.0-or-later  https://github.com/jasonpan168/ajie-shop
  */
 
 require_once __DIR__ . '/db.php';

@@ -13,7 +13,7 @@
  * 处理商品上架和下架状态的更新请求，提供Ajax接口
  * 用于实时更新商品的销售状态。
  * 
- * 未经允许禁止商用，仅供学习研究个人使用
+ * @license AGPL-3.0-or-later  https://github.com/jasonpan168/ajie-shop
  */
 
 session_start();

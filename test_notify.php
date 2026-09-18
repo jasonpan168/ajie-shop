@@ -15,7 +15,7 @@
  * 2. 模拟支付完成
  * 3. 测试通知发送功能
  * 
- * 未经允许禁止商用，仅供学习研究个人使用
+ * @license AGPL-3.0-or-later  https://github.com/jasonpan168/ajie-shop
  */
 
 

@@ -13,7 +13,7 @@
  * 提供Telegram机器人通知功能，用于发送订单通知、
  * 系统状态通知等信息到指定的Telegram群组或频道。
  * 
- * 未经允许禁止商用，仅供学习研究个人使用
+ * @license AGPL-3.0-or-later  https://github.com/jasonpan168/ajie-shop
  */
 
 class TelegramNotifier {

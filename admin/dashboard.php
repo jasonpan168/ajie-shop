@@ -13,7 +13,7 @@
  * 展示商城系统的运营数据统计，包括商品总数、订单数量、
  * 销售额等关键指标的实时数据展示。
  * 
- * 未经允许禁止商用，仅供学习研究个人使用
+ * @license AGPL-3.0-or-later  https://github.com/jasonpan168/ajie-shop
  */
 
 session_start();

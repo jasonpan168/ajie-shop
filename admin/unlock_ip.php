@@ -13,7 +13,7 @@
  * 提供IP地址解封功能，用于管理员手动解除被系统自动封禁的IP地址，
  * 支持永久解封和临时解封操作。
  * 
- * 未经允许禁止商用，仅供学习研究个人使用
+ * @license AGPL-3.0-or-later  https://github.com/jasonpan168/ajie-shop
  */
 
 require_once '../db.php';

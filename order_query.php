@@ -13,7 +13,7 @@
  * 提供订单查询接口，返回订单详细信息，
  * 包括订单状态、金额、商品信息等数据。
  * 
- * 未经允许禁止商用，仅供学习研究个人使用
+ * @license AGPL-3.0-or-later  https://github.com/jasonpan168/ajie-shop
  */
 
 require_once 'db.php';

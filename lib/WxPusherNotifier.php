@@ -13,7 +13,7 @@
  * 通过WxPusher平台实现微信消息推送功能，用于发送订单通知和支付成功通知等系统消息。
  * 支持从数据库配置或直接传参两种方式初始化，可灵活控制不同类型通知的开启状态。
  * 
- * 未经允许禁止商用，仅供学习研究个人使用
+ * @license AGPL-3.0-or-later  https://github.com/jasonpan168/ajie-shop
  */
 
 class WxPusherNotifier {

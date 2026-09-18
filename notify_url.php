@@ -14,7 +14,7 @@
  * 验证通知数据的真实性，更新订单状态。
  * 特别说明：URL参数plugin=usdt时按USDT订单处理。
  * 
- * 未经允许禁止商用，仅供学习研究个人使用
+ * @license AGPL-3.0-or-later  https://github.com/jasonpan168/ajie-shop
  */
 
 // 引入数据库连接文件（确保 db.php 路径正确）

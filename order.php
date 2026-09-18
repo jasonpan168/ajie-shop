@@ -13,7 +13,7 @@
  * 处理商城系统的订单创建和支付流程，支持原生微信支付（非易支付）。
  * 包含IP限制检查、订单参数验证、优惠码处理等功能。
  * 
- * 未经允许禁止商用，仅供学习研究个人使用
+ * @license AGPL-3.0-or-later  https://github.com/jasonpan168/ajie-shop
  */
 
 require_once 'db.php';

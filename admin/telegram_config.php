@@ -11,7 +11,7 @@
  * 2. 设置目标Chat ID
  * 3. 启用/禁用通知功能
  * 
- * 开源协议：MIT License
+ * @license AGPL-3.0-or-later  https://github.com/jasonpan168/ajie-shop
  */
 
 session_start();

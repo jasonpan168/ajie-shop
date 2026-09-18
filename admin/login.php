@@ -13,7 +13,7 @@
  * 提供管理员登录功能，包含安全验证和会话管理，
  * 是后台管理系统的安全入口。
  * 
- * 未经允许禁止商用，仅供学习研究个人使用
+ * @license AGPL-3.0-or-later  https://github.com/jasonpan168/ajie-shop
  */
 
 session_start();

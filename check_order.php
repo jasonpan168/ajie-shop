@@ -13,7 +13,7 @@
  * 提供订单状态查询接口，通过订单号查询订单的当前状态，
  * 返回JSON格式的订单状态信息，用于前端实时更新订单状态。
  * 
- * 未经允许禁止商用，仅供学习研究个人使用
+ * @license AGPL-3.0-or-later  https://github.com/jasonpan168/ajie-shop
  */
 
 require_once 'db.php';

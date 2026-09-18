@@ -13,7 +13,7 @@
  * 管理商城系统的优惠券，包括添加、编辑、删除优惠券信息，
  * 以及管理优惠券的使用状态、有效期等信息。
  * 
- * 未经允许禁止商用，仅供学习研究个人使用
+ * @license AGPL-3.0-or-later  https://github.com/jasonpan168/ajie-shop
  */
 
 session_start();

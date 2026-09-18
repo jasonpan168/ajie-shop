@@ -11,7 +11,7 @@
  * 2. 设置发件人信息
  * 3. 选择邮件通知类型
  * 
- * 开源协议：MIT License
+ * @license AGPL-3.0-or-later  https://github.com/jasonpan168/ajie-shop
  */
 
 session_start();

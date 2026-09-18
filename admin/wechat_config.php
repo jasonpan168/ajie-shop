@@ -13,7 +13,7 @@
  * 管理微信支付接口的配置信息，包括AppID、商户号、API密钥等设置，
  * 以及启用/禁用微信支付功能。
  * 
- * 未经允许禁止商用，仅供学习研究个人使用
+ * @license AGPL-3.0-or-later  https://github.com/jasonpan168/ajie-shop
  */
 
 session_start();

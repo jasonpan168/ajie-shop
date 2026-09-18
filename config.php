@@ -12,7 +12,7 @@
  * 2. 配置微信支付相关参数
  * 3. 设置加密密钥用于API密钥加密
  * 
- * 开源协议：MIT License
+ * @license AGPL-3.0-or-later  https://github.com/jasonpan168/ajie-shop
  */
 
 // 检查安装状态

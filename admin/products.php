@@ -13,7 +13,7 @@
  * 管理商城系统的商品，包括添加、编辑、删除商品信息，
  * 以及管理商品的库存、价格等信息。
  * 
- * 未经允许禁止商用，仅供学习研究个人使用
+ * @license AGPL-3.0-or-later  https://github.com/jasonpan168/ajie-shop
  */
 
 session_start();

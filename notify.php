@@ -14,7 +14,7 @@
  * 更新订单状态，并发送相关通知。
  * 这是整个支付流程中的关键组件。
  * 
- * 未经允许禁止商用，仅供学习研究个人使用
+ * @license AGPL-3.0-or-later  https://github.com/jasonpan168/ajie-shop
  */
 
 require_once 'db.php';

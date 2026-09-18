@@ -6,7 +6,7 @@
  * 管理易支付接口的配置信息，包括接口地址、商户ID、密钥等参数
  * 支持从环境变量或数据库获取配置
  * 
- * 开源协议：MIT License
+ * @license AGPL-3.0-or-later  https://github.com/jasonpan168/ajie-shop
  */
 
 require_once __DIR__ . '/../db.php';

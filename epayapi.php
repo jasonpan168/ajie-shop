@@ -13,7 +13,7 @@
  * 处理支付网关跳转，包括参数组装和签名验证，
  * 确保用户能够安全顺利地跳转到支付页面。
  * 
- * 未经允许禁止商用，仅供学习研究个人使用
+ * @license AGPL-3.0-or-later  https://github.com/jasonpan168/ajie-shop
  */
 
 require_once("lib/epay.config.php");

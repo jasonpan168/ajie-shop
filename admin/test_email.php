@@ -13,7 +13,7 @@
  * 提供邮件服务器配置的测试功能，用于验证邮件发送功能是否正常，
  * 通过发送测试邮件来确认邮件服务器配置的正确性。
  * 
- * 未经允许禁止商用，仅供学习研究个人使用
+ * @license AGPL-3.0-or-later  https://github.com/jasonpan168/ajie-shop
  */
 
 session_start();
