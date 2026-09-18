@@ -9,11 +9,58 @@ if (!isset($_SESSION['form_token'])) {
 // 标记正在安装，防止config.php建立数据库连接
 define('INSTALLING', true);
 
-// 检查是否已安装
+// 检查是否已安装（第一道防线：安装锁文件）
 if (file_exists(__DIR__ . '/../install.lock')) {
     header('Location: ../');
     exit;
 }
+
+/**
+ * 第二道防线：admin 表里已经有账号，就一定不是全新安装。
+ *
+ * 只靠 install.lock 是不够的 —— 迁移、rsync、备份还原都可能把锁文件弄丢，
+ * 而第 2 步会 TRUNCATE TABLE admin 再写入新管理员。锁文件一丢，任何人访问
+ * /install/ 就能清空管理员表、设置自己的账号，完整接管整个商城。
+ */
+function installer_existing_admin_count($dbHost, $dbUser, $dbPass, $dbName) {
+    if ($dbName === '' || $dbHost === '') {
+        return 0;
+    }
+    try {
+        $probe = new PDO("mysql:host=$dbHost;dbname=$dbName;charset=utf8mb4", $dbUser, $dbPass);
+        $probe->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $count = $probe->query("SELECT COUNT(*) FROM `admin`")->fetchColumn();
+        return (int)$count;
+    } catch (Exception $e) {
+        // 库或表还不存在 => 确实是全新安装
+        return 0;
+    }
+}
+
+/** 已装好的站点不允许再跑向导 */
+function installer_refuse_if_installed($dbHost, $dbUser, $dbPass, $dbName) {
+    if (installer_existing_admin_count($dbHost, $dbUser, $dbPass, $dbName) > 0) {
+        http_response_code(403);
+        echo '<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8">'
+           . '<title>安装已被拒绝</title></head><body style="font:16px/1.7 system-ui;max-width:640px;margin:80px auto;padding:0 20px">'
+           . '<h1>安装已被拒绝</h1>'
+           . '<p>目标数据库中<strong>已存在管理员账号</strong>，说明本站已经安装过。'
+           . '继续安装会清空管理员表并让执行者接管整个后台，因此向导已停止。</p>'
+           . '<p>如果你确实要重装，请先手动备份并清空数据库；'
+           . '如果不是你发起的这次安装，请<strong>立即删除服务器上的 install/ 目录</strong>，'
+           . '并检查后台是否有异常登录。</p>'
+           . '</body></html>';
+        exit;
+    }
+}
+
+// 环境变量 / .env 里若已有可用的数据库配置，进向导前就先查一遍
+installer_refuse_if_installed(
+    (string)(getenv('DB_HOST') ?: ''),
+    (string)(getenv('DB_USER') ?: ''),
+    (string)(getenv('DB_PASS') !== false ? getenv('DB_PASS') : ''),
+    (string)(getenv('DB_NAME') ?: '')
+);
 
 $step = isset($_GET['step']) ? $_GET['step'] : 1;
 $error = '';
@@ -51,6 +98,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new PDOException('数据库用户缺少创建数据库的权限。请确保用户具有 CREATE 权限，或联系数据库管理员授予相应权限。');
             }
 
+            // 目标库里已有管理员 => 拒绝重装
+            installer_refuse_if_installed($dbHost, $dbUser, $dbPass, $dbName);
+
             // 保存数据库配置到会话
             $_SESSION['db_host'] = $dbHost;
             $_SESSION['db_user'] = $dbUser;
@@ -63,7 +113,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: ?step=2');
             exit;
         } catch (PDOException $e) {
-            $error = '数据库连接失败：' . $e->getMessage() . '\n请检查：\n1. 数据库服务器地址是否正确\n2. 用户名和密码是否正确\n3. 数据库用户是否具有足够的权限';
+            // 详细原因只进服务器错误日志：
+            // $e->getMessage() 里含主机名、库名和 MySQL 用户名，不能回显给前端。
+            error_log('[install] 数据库连接失败：' . $e->getMessage());
+            $error = '数据库连接失败。请检查：1. 数据库地址与端口；2. 用户名与密码；3. 该用户是否有 CREATE 权限。详细错误已记入服务器错误日志。';
         }
     } elseif ($step == 2 && isset($_SESSION['db_configured'])) {
         $adminUser = $_POST['admin_user'];
@@ -72,6 +125,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $dbUser = $_SESSION['db_user'];
         $dbPass = $_SESSION['db_pass'];
         $dbName = $_SESSION['db_name'];
+
+        // TRUNCATE TABLE admin 之前的最后一道检查
+        installer_refuse_if_installed($dbHost, $dbUser, $dbPass, $dbName);
 
         try {
             // 连接数据库服务器
@@ -124,7 +180,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: ?step=3');
             exit;
         } catch (PDOException $e) {
-            $error = '创建管理员账户失败：' . $e->getMessage();
+            error_log('[install] 创建管理员账户失败：' . $e->getMessage());
+            $error = '创建管理员账户失败，详细错误已记入服务器错误日志。';
         } catch (Exception $e) {
             if ($e->getMessage() === 'ENV_WRITE_FAILED') {
                 $error = '无法写入 .env 文件，请检查网站根目录的写入权限后重试。';
@@ -166,11 +223,11 @@ $progress = ($step / 3) * 100;
         </div>
 
         <?php if ($error): ?>
-            <div class="error-message"><?php echo $error; ?></div>
+            <div class="error-message"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></div>
         <?php endif; ?>
         
         <?php if ($success): ?>
-            <div class="success-message"><?php echo $success; ?></div>
+            <div class="success-message"><?php echo htmlspecialchars($success, ENT_QUOTES, 'UTF-8'); ?></div>
         <?php endif; ?>
 
         <?php if ($step == 1): ?>
@@ -224,7 +281,12 @@ $progress = ($step / 3) * 100;
                 <a href="../admin/" class="link-admin" target="_blank">后台管理</a>
             </div>
             <div class="security-notice">
-                <strong>安全提示：</strong> 请立即删除install目录以确保系统安全！
+                <strong>必做：立即删除 install/ 目录</strong>
+                <p>安装向导会重建管理员账户。只要 install/ 目录还在服务器上，
+                它就是一个接管入口。请在服务器上执行：</p>
+                <pre style="background:#f5f5f5;padding:10px;overflow-x:auto">rm -rf install/</pre>
+                <p>另请确认：<code>.env</code> 权限为 600，<code>logs/</code> 不可通过 Web 访问，
+                并已为站点配置 HTTPS。</p>
             </div>
         </div>
         <?php endif; ?>

@@ -111,7 +111,13 @@ if (!defined('INSTALLING')) {
         $pdo = new PDO("mysql:host=$db_host;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     } catch (PDOException $e) {
-        die("数据库连接失败：" . $e->getMessage());
+        // 不要把 $e->getMessage() 直接吐给前端：
+        // 它会回显数据库主机名、库名和 MySQL 用户名。
+        error_log('数据库连接失败：' . $e->getMessage());
+        if (DEBUG_MODE) {
+            die('数据库连接失败：' . $e->getMessage());
+        }
+        die('系统暂时无法处理您的请求，请稍后再试。');
     }
 }
 
