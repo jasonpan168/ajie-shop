@@ -316,7 +316,7 @@ CREATE TABLE `products` (
 
 LOCK TABLES `products` WRITE;
 /*!40000 ALTER TABLE `products` DISABLE KEYS */;
-INSERT INTO `products` VALUES (1,'这是商品','这是商品','测试商品',1.00,990,'https://cdn.laikr.com//shujuku/202503231143317.png',0,0,1),(5,'测试下架','测试','',1.00,100,'https://cdn.laikr.com//shujuku/202503231143317.png',8,0,0),(9,'这是商品','商品','测 his',1.00,100,'https://cdn.laikr.com//shujuku/202503231143317.png',1,0,1),(13,'这是商品','测试','',1.00,1107,'https://cdn.laikr.com//shujuku/202503231143317.png',0,1,1);
+INSERT INTO `products` VALUES (1,'这是商品','这是商品','测试商品',1.00,990,'https://你的域名/images/sample-product.png',0,0,1),(5,'测试下架','测试','',1.00,100,'https://你的域名/images/sample-product.png',8,0,0),(9,'这是商品','商品','测 his',1.00,100,'https://你的域名/images/sample-product.png',1,0,1),(13,'这是商品','测试','',1.00,1107,'https://你的域名/images/sample-product.png',0,1,1);
 /*!40000 ALTER TABLE `products` ENABLE KEYS */;
 UNLOCK TABLES;
 

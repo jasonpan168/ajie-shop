@@ -22,6 +22,31 @@ require_once 'lib/InputValidator.php';
 require_once 'lib/Logger.php';
 session_start();
 
+/**
+ * 校验支付回调地址是否已由管理员正确填写。
+ *
+ * 回调地址必须来自后台「微信支付配置」，绝不允许写死任何固定域名：
+ * 写死会导致别人部署后的支付回调（含订单号、金额、买家昵称与邮箱）
+ * 被发到第三方服务器，且他们自己的订单永远不会变成已支付。
+ */
+function is_valid_notify_url($url) {
+    $url = trim((string)$url);
+    if ($url === '') {
+        return false;
+    }
+    // 未替换的占位符一律视为未配置
+    foreach (array('填写', '你的域名', 'example.com', '127.0.0.1', 'localhost') as $placeholder) {
+        if (strpos($url, $placeholder) !== false) {
+            return false;
+        }
+    }
+    if (!filter_var($url, FILTER_VALIDATE_URL)) {
+        return false;
+    }
+    $scheme = strtolower((string)parse_url($url, PHP_URL_SCHEME));
+    return in_array($scheme, array('http', 'https'), true);
+}
+
 // 引入清理脚本
 require_once 'clean_orders.php';
 
@@ -35,7 +60,8 @@ $wechat_ready = $wechat_config && $wechat_config['enabled'] &&
                 !empty($wechat_config['api_key']) &&
                 strpos($wechat_config['appid'], '填写') === false &&
                 strpos($wechat_config['mch_id'], '填写') === false &&
-                strpos($wechat_config['api_key'], '填写') === false;
+                strpos($wechat_config['api_key'], '填写') === false &&
+                is_valid_notify_url($wechat_config['notify_url'] ?? '');
 
 if (!$wechat_ready) {
     header('Location: payment-setup-guide.php?type=wechat');
@@ -240,7 +266,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $appid      = $merchant_appid;
     $mch_id     = $merchant_mchid;
     $merchant_key_local = $merchant_api_key; // 从 config.php 获取微信支付 API 密钥
-    $notify_url = 'https://yewu.laikr.com/notify.php';
+    // 回调地址只能来自后台配置（wechat_config 表），config.php 已将其读入 $notify_url。
+    // 这里优先用本文件开头已查出的 $wechat_config，并做一次兜底校验；
+    // 任何情况下都不允许静默回落到作者自己的域名。
+    $notify_url = trim((string)($wechat_config['notify_url'] ?? ($configData['notify_url'] ?? '')));
+    if (!is_valid_notify_url($notify_url)) {
+        Logger::logSecurityEvent('Invalid notify_url', 'ERROR', array('order' => $order_no));
+        die('支付回调地址（notify_url）未配置或格式错误。请登录后台「微信支付配置」，'
+            . '填写你自己的回调地址（例如 https://你的域名/notify.php）后重试。');
+    }
     $unifiedorder_url = 'https://api.mch.weixin.qq.com/pay/unifiedorder';
 
     // 辅助函数：生成随机字符串

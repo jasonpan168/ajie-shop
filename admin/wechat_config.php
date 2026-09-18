@@ -79,7 +79,7 @@ require_once 'includes/header.php';
         </div>
         <div class="form-group">
           <label for="notify_url">回调通知地址 (Notify URL)</label>
-          <input type="text" name="notify_url" id="notify_url" class="form-control" required value="<?php echo htmlspecialchars($config['notify_url'] ?? 'https://yewu.laikr.com/notify.php'); ?>">
+          <input type="text" name="notify_url" id="notify_url" class="form-control" required value="<?php echo htmlspecialchars($config['notify_url'] ?? 'https://你的域名/notify.php'); ?>">
         </div>
         <div class="form-group">
           <label>支付通道开关：</label>

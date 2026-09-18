@@ -20,11 +20,11 @@ require_once("lib/epay.config.php");
 require_once("lib/EpayCore.class.php");
 
 /**************************请求参数**************************/
-$notify_url = "http://127.0.0.1/SDK/notify_url.php";
+$notify_url = $epay_config['notify_url'];
 //需http://格式的完整路径，不能加?id=123这类自定义参数
 
 //页面跳转同步通知页面路径
-$return_url = "http://127.0.0.1/SDK/return_url.php";
+$return_url = $epay_config['return_url'];
 //需http://格式的完整路径，不能加?id=123这类自定义参数
 
 //商户订单号

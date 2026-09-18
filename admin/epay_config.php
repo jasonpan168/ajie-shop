@@ -97,8 +97,8 @@ require_once 'includes/header.php';
               <label for="apiurl" class="col-sm-2 col-form-label">支付接口地址</label>
               <div class="col-sm-6">
                 <input type="text" class="form-control" id="apiurl" name="apiurl" required
-                       value="<?php echo htmlspecialchars($config['apiurl'] ?? 'https://pay.a6.cm/'); ?>">
-                <div class="form-text">例如：https://pay.a6.cm/（末尾带斜杠）</div>
+                       value="<?php echo htmlspecialchars($config['apiurl'] ?? 'https://你的易支付接口地址/'); ?>">
+                <div class="form-text">例如：https://你的易支付接口地址/（末尾带斜杠）</div>
               </div>
             </div>
             <div class="mb-3 row">
@@ -119,14 +119,14 @@ require_once 'includes/header.php';
               <label for="notify_url" class="col-sm-2 col-form-label">异步通知地址</label>
               <div class="col-sm-6">
                 <input type="text" class="form-control" id="notify_url" name="notify_url" required
-                       value="<?php echo htmlspecialchars($config['notify_url'] ?? 'https://yewu.laikr.com/notify_url.php'); ?>">
+                       value="<?php echo htmlspecialchars($config['notify_url'] ?? 'https://你的域名/notify_url.php'); ?>">
               </div>
             </div>
             <div class="mb-3 row">
               <label for="return_url" class="col-sm-2 col-form-label">同步返回地址</label>
               <div class="col-sm-6">
                 <input type="text" class="form-control" id="return_url" name="return_url" required
-                       value="<?php echo htmlspecialchars($config['return_url'] ?? 'https://yewu.laikr.com/return_url.php'); ?>">
+                       value="<?php echo htmlspecialchars($config['return_url'] ?? 'https://你的域名/return_url.php'); ?>">
               </div>
             </div>
             <div class="mb-3 row">
