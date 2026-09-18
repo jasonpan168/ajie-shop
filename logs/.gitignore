@@ -1,3 +1,4 @@
 # 该目录存放运行时日志，内容不进版本控制
 *
 !.gitignore
+!.htaccess

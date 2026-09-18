@@ -40,6 +40,22 @@ LOCK TABLES `admin` WRITE;
 UNLOCK TABLES;
 
 --
+-- Table structure for table `admin_login_attempts`
+--
+
+DROP TABLE IF EXISTS `admin_login_attempts`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `admin_login_attempts` (
+  `ip` varchar(45) NOT NULL,
+  `attempts` int(11) NOT NULL DEFAULT '0',
+  `last_attempt` datetime NOT NULL,
+  `locked_until` datetime DEFAULT NULL,
+  PRIMARY KEY (`ip`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `auto_card_tasks`
 --
 
