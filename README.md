@@ -258,7 +258,8 @@ mysql -e "SELECT order_no,status,amount FROM orders ORDER BY id DESC LIMIT 1" �
 | 支付验签 / 防重放 | ✅ 有 | 见上一节 |
 | 敏感文件保护 | ⚠️ 看你部署 | 仓库自带 `.htaccess`；**用 Nginx 的必须自己加 deny 规则**，`.htaccess` 对 Nginx 完全无效 |
 | 错误信息 | ✅ 好 | 数据库异常只进 `error_log()`，前台显示通用文案 |
-| 依赖 | ⚠️ 旧 | 前端 CDN 用的 Bootstrap 4.5.0 / jQuery 3.5.1 已停止维护 |
+| CDN 资源完整性 | ✅ 有 | 全部 65 处 CDN 引用都带 `integrity` + `crossorigin`（SRI），CDN 被篡改时浏览器会拒绝加载 |
+| 依赖版本 | ⚠️ 旧 | 前端 CDN 用的 Bootstrap 4.5.0 / jQuery 3.5.1 已停止维护 |
 
 ### 生产加固清单
 
@@ -293,7 +294,7 @@ done
 - **`admin/uploads/` 没有上传类型白名单审计**，请不要把该目录配成可执行 PHP。
 - **微信 API 密钥的 AES-128-ECB 加密不是强保护**（同上文说明）。
 - **没有自动化测试**，也没有 CI。
-- **前端依赖是 CDN 外链且无 SRI**（Bootstrap 4.5.0 / jQuery 3.5.1，均已停止维护）。对完整性要求高的部署，建议把这些静态资源下载到本地自托管。
+- **前端依赖是 CDN 外链**，已全部加上 SRI，但 Bootstrap 4.5.0 / jQuery 3.5.1 本身已停止维护，且外链意味着可用性依赖第三方 CDN。对可用性或隐私要求高的部署，建议把这些静态资源下载到本地自托管。
 - `rainbow_notify.php` 与 `notify_url.php` 功能重叠，前者是易支付回调的简化实现，仅在你手动把它配成回调地址时才会被用到。
 
 发现问题请按 [SECURITY.md](SECURITY.md) **私密报告**。
