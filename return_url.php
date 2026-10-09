@@ -35,64 +35,9 @@ if ($verify_result) {
     $resultMessage = "验证失败";
     $status = "failed";
 }
+
+require_once __DIR__.'/storefront/theme.php';
+$theme=sf_theme($pdo);
+sf_header($theme,'支付返回');
 ?>
-<!DOCTYPE html>
-<html lang="zh">
-<head>
-    <meta charset="UTF-8">
-    <title>支付返回页面</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- 引入 Bootstrap 4 CSS -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous" referrerpolicy="no-referrer">
-    <!-- 引入 Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" integrity="sha384-SZXxX4whJ79/gErwcOYf+zWLeJdY/qpuqC4cAa9rOGUstPomtqpuNWT9wdPEn2fk" crossorigin="anonymous" referrerpolicy="no-referrer">
-    <style>
-        body {
-            background: #f8f9fa;
-            padding-top: 50px;
-        }
-        .result-container {
-            max-width: 600px;
-            margin: auto;
-        }
-        .result-card {
-            border: none;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-        .result-icon {
-            font-size: 80px;
-            color: #28a745;
-        }
-        .result-icon.failed {
-            color: #dc3545;
-        }
-        .result-message {
-            font-size: 1.5rem;
-            margin-top: 20px;
-        }
-        .btn-return {
-            margin-top: 30px;
-        }
-    </style>
-</head>
-<body>
-<div class="container result-container">
-    <div class="card result-card">
-        <div class="card-body text-center">
-            <?php if ($status == "success"): ?>
-                <i class="fas fa-check-circle result-icon"></i>
-            <?php else: ?>
-                <i class="fas fa-times-circle result-icon failed"></i>
-            <?php endif; ?>
-            <div class="result-message">
-                <?php echo $resultMessage; ?>
-            </div>
-            <a href="index.php" class="btn btn-primary btn-return">返回首页</a>
-        </div>
-    </div>
-</div>
-<!-- 引入 jQuery 和 Bootstrap JS -->
-<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.bundle.min.js" integrity="sha384-1CmrxMRARb6aLqgBO7yyAxTOQE2AKb9GfXnEo760AUcUmFx3ibVJJAzGytlQcNXd" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-</body>
-</html>
+<main id="main" class="page-main"><section class="panel result-panel"><div class="result-icon"><?= $status==='success'?'✓':'!' ?></div><h1><?= $status==='success'?'支付已返回':'暂未确认支付' ?></h1><p><?= $resultMessage ?></p><p class="muted">最终订单状态请以订单查询结果为准。</p><div class="result-actions"><a class="button" href="orders.php?order_no=<?= rawurlencode(is_string($out_trade_no??null)?$out_trade_no:'') ?>">查看订单</a><a class="button secondary" href="index.php">返回商城</a></div></section></main><?php sf_footer(); ?>

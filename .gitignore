@@ -32,3 +32,6 @@ Thumbs.db
 # 依赖
 /vendor/
 node_modules/
+
+# 店铺品牌配置（店名、logo），每个部署自己的，不提交
+storefront/brand.local.php

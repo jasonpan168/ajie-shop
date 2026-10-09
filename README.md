@@ -21,7 +21,8 @@
 | 优惠码 | 创建、启用 / 停用、按订单核销 |
 | 通知 | 邮件（SMTP）、Telegram Bot、WxPusher |
 | 风控 | 下单 IP 频率限制、后台登录失败锁定 |
-| 后台 | 仪表板、商品 / 订单 / 优惠码 / 支付 / 邮件 / 菜单管理 |
+| 商城模板 | 6 套前台模板一键切换，可一键导入 AI 会员示例商品（自带商品图、建议价格、商品说明） |
+| 后台 | 仪表板、商品 / 订单 / 优惠码 / 支付 / 邮件 / 菜单 / 模板管理 |
 
 ---
 
@@ -108,6 +109,35 @@ chmod -R 750 logs admin/uploads      # ③ 不要用 777
 自动发卡商品还要额外做两步：**发卡任务管理**里创建任务并导入卡密，再在里面把该商品勾选为「自动发卡」。
 
 ---
+
+## 🎨 商城模板与示例商品
+
+后台左侧「商城模板」（`/admin/storefront_themes.php`）里有 6 套前台模板，专门为卖 AI 会员（ChatGPT、Claude、Gemini、Midjourney、Cursor 等）设计：
+
+![六套商城模板](docs/images/storefront-templates.webp)
+
+| 模板 | 风格 |
+|---|---|
+| 清爽蓝白 | 居中竖卡，清晰选购 |
+| 极简横卡 | 双列横卡，价格优先 |
+| 琥珀黑金 | 主推展台，金属质感会员卡 |
+| 曜石展廊 | 三列展廊，立体会员卡 |
+| 深色科技（默认） | 深蓝玻璃卡片，青色微光 |
+| 经典商城 | 封面网格，直观购买 |
+
+- **预览实页**只对你自己生效，**启用模板**后所有访客生效。切换模板不会改动商品和订单。
+- 首页、商品页、收银页、扫码支付、支付结果、订单查询、购买帮助页都跟随模板。
+
+**一键导入示例商品**：刚装好、还没有商品时，在「商城模板」页点「导入示例商品」，会创建 8 个 AI 会员商品（ChatGPT Plus、Claude Pro、Gemini Advanced、Midjourney、Cursor Pro、Perplexity Pro、Notion AI、AI 效率会员）：
+
+- 自带商品图：模板按商品名自动识别品牌，使用各模板自己的卡面和图标；你自己新建的其他商品用你上传的封面。
+- 自带建议价格（人民币 / 月，仅供参考）和商品说明（适合谁、商品内容、交付方式、注意事项）。也可以勾选「价格先空着」，前台显示「价格待定」且不能下单。
+- 导入后去「商品管理」改成你自己的价格、库存，并在「自动发卡任务」里配置发货内容。
+- 已有同名商品会自动跳过，不会覆盖你改过的数据，重复点击是安全的。
+
+**换成你自己的店名和 logo**：把 `storefront/brand.local.example.php` 复制为 `storefront/brand.local.php` 后修改（店名、英文副标、页脚标语、logo、深色模板用的横版字标）。不配置时显示通用文字标志，店名取 `config.php` 里的 `SITE_NAME`。
+
+> 商品图里的 AI 产品标志（OpenAI、Anthropic、Google、Midjourney、Cursor、Perplexity、Notion 等）是各公司的商标，仅用于标示你所销售的会员商品，本项目与这些公司没有关联。图标来源见 `assets/storefront/icons/SOURCES.md`。转售这些会员前，请自行确认符合对应服务条款和当地法律。
 
 ## 💳 配置支付
 
@@ -262,7 +292,7 @@ mysql -e "SELECT order_no,status,amount,card_sent FROM orders ORDER BY id DESC L
 | 项目 | 状态 | 说明 |
 |---|---|---|
 | SQL 注入 | ✅ 好 | 全站用 PDO 预处理；唯一的字符串拼接在 `admin/manage_card_tasks.php`，但先过了 `array_map('intval', …)` |
-| XSS（前台） | ✅ 好 | `index.php` / `product.php` / `choose_pay.php` 经 `lib/SafeOutput.php` 转义；商品描述走白名单富文本 |
+| XSS（前台） | ✅ 好 | 前台模板统一用 `sf_e()` 转义输出；商品详情的富文本经 `sf_rich_html()`（`storefront/theme.php`）按 DOM 白名单净化：只留排版标签，链接 / 图片只允许 http(s) 与站内相对路径，`on*`、`style`、`script`、`iframe` 等全部去掉 |
 | XSS（后台） | ⚠️ 部分 | 多数字段有 `htmlspecialchars`，但未逐页审计过 |
 | CSRF（后台登录） | ✅ 有 | 本次已加 |
 | CSRF（其他后台页） | ⚠️ **不完整** | 目前只有 `login.php`、`product_edit.php`、`order_details.php`、`coupons.php` 校验 token；**其余 14 个带 POST 的后台页面还没有**。`lib/CsrfProtection.php` 已就绪，补齐是欢迎的 PR |
@@ -294,7 +324,7 @@ mysql -e "SELECT order_no,status,amount,card_sent FROM orders ORDER BY id DESC L
 自查命令：
 
 ```bash
-for p in /.env /config.php /logs/ /database.sql /notify.log /lib/order_service.php /db_updates/update_db.php /clean_orders.php; do
+for p in /.env /config.php /logs/ /database.sql /notify.log /lib/order_service.php /db_updates/update_db.php /clean_orders.php /storefront/theme.php; do
   echo "$p -> $(curl -s -o /dev/null -w '%{http_code}' https://你的域名$p)"
 done
 # 期望：全部 403 或 404。出现 200 就是漏了。
@@ -366,7 +396,7 @@ admin/menus.php                 admin/wxpusher_config.php
 ### 2. 后台 XSS 未逐页审计
 
 **是什么**
-前台（`index.php`、`product.php`、`choose_pay.php`、`payment-setup-guide.php`）统一走 `lib/SafeOutput.php` 转义，商品描述走白名单富文本。**后台没有做过同样的系统性审计**：多数字段确实套了 `htmlspecialchars`，但这是逐处人工写的，没有统一出口，也没人把 18 个后台页面的每个回显点过一遍。
+前台模板页统一用 `sf_e()` 转义，商品详情富文本走 `sf_rich_html()` 白名单净化（`payment-setup-guide.php` 仍走 `lib/SafeOutput.php`）。**后台没有做过同样的系统性审计**：多数字段确实套了 `htmlspecialchars`，但这是逐处人工写的，没有统一出口，也没人把 18 个后台页面的每个回显点过一遍。
 
 **影响谁 / 什么场景**
 后台会回显买家可控的数据 —— 订单里的**昵称**和**邮箱**是买家在下单时自己填的。如果某个后台页面把它们未转义地打印出来，一个下单时把昵称写成 `<script>…</script>` 的人，就能在管理员打开订单列表时在管理员浏览器里执行脚本（存储型 XSS）。结合第 1 条的 CSRF 缺口，杀伤力会显著放大。

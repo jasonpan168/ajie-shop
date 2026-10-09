@@ -9,7 +9,7 @@
   <!-- Font Awesome 图标 -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous" referrerpolicy="no-referrer">
   <!-- 自定义样式 -->
-  <link rel="stylesheet" href="/admin/css/admin-style.css">
+  <link rel="stylesheet" href="/admin/css/admin-style.css?v=20261009-2">
   <!-- Chart.js 库 -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" integrity="sha384-JUh163oCRItcbPme8pYnROHQMC6fNKTBWtRG3I3I0erJkzNgL7uxKlNwcrcFKeqF" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
@@ -77,6 +77,12 @@
           <li class="nav-item">
             <a class="nav-link <?php echo $current_page === 'epay_config' ? 'active' : ''; ?>" href="epay_config.php">
               <i class="fas fa-credit-card"></i>易支付配置
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a class="nav-link <?php echo $current_page === 'storefront_themes' ? 'active' : ''; ?>" href="storefront_themes.php">
+              <i class="fas fa-palette"></i>商城模板
             </a>
           </li>
 

@@ -4,6 +4,10 @@
   min-height: 100vh;
   padding-top: 0;
   position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  overflow-y: auto;
   width: 250px;
   z-index: 1000;
   box-shadow: 2px 0 5px rgba(0,0,0,0.1);
@@ -32,11 +36,12 @@
 }
 
 .content {
-  margin-left: 120px;
+  /* 与侧边栏同宽，避免侧边栏盖住内容 */
+  margin-left: 250px;
   padding: 20px 30px;
   min-height: 100vh;
   background: #f8f9fa;
-  width: calc(100% - 120px);
+  width: calc(100% - 250px);
   box-sizing: border-box;
 }
 

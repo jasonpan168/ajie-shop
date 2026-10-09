@@ -1,0 +1,2 @@
+# 模板代码只供页面 include，禁止直接访问（Apache）
+Require all denied

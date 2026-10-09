@@ -1,8 +1,11 @@
 <?php
 // order_display.php
 session_start();
+require_once __DIR__.'/db.php';
+require_once __DIR__.'/storefront/theme.php';
+$theme=sf_theme($pdo);
 if (!isset($_SESSION['order_data'])) {
-    die("没有订单数据，请重新下单。");
+    sf_header($theme,'查看支付订单'); echo '<main id="main" class="page-main"><div class="panel result-panel"><h2>没有待支付的二维码</h2><p>如果已经付款，请先查询订单，避免重复支付。</p><a href="orders.php" class="button">查询订单</a></div></main>'; sf_footer(); exit;
 }
 $order_no = $_SESSION['order_data']['order_no'];
 $code_url = $_SESSION['order_data']['code_url'];
@@ -17,120 +20,24 @@ ob_start();
 QRcode::png($code_url, null, QR_ECLEVEL_L, 6);
 $imageData = base64_encode(ob_get_contents());
 ob_end_clean();
+sf_header($theme,'微信扫码支付');
 ?>
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <title>微信扫码支付</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- 引入 Bootstrap 4 CSS -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous" referrerpolicy="no-referrer">
-    <!-- 引入 Font Awesome 用于显示微信图标 -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" integrity="sha384-SZXxX4whJ79/gErwcOYf+zWLeJdY/qpuqC4cAa9rOGUstPomtqpuNWT9wdPEn2fk" crossorigin="anonymous" referrerpolicy="no-referrer">
-    <style>
-        body {
-            background: #f2f2f2;
-        }
-        .card {
-            max-width: 450px;
-            margin: 30px auto;
-            border: none;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .card-header {
-            background: #09BB07; /* 微信绿色 */
-            color: #fff;
-            font-size: 20px;
-            text-align: center;
-            border-top-left-radius: 10px;
-            border-top-right-radius: 10px;
-            padding: 15px;
-        }
-        .card-body {
-            text-align: center;
-            padding: 20px;
-        }
-        .qr-code {
-            margin: 20px 0;
-        }
-        .qr-code img {
-            width: 230px;
-            height: 230px;
-        }
-        .order-no {
-            font-size: 16px;
-            margin-top: 10px;
-            color: #555;
-        }
-        .instruction {
-            margin-top: 20px;
-            font-size: 14px;
-            color: #777;
-        }
-        .btn-copy {
-            margin-top: 15px;
-        }
-    </style>
-</head>
-<body>
-<div class="card">
-    <div class="card-header">
-        <i class="fab fa-weixin"></i> 微信扫码支付
-    </div>
-    <div class="card-body">
-        <div class="qr-code">
-            <img src="data:image/png;base64,<?php echo $imageData; ?>" alt="微信支付二维码" class="img-fluid">
-        </div>
-        <div class="order-no">
-            订单号：<?php echo htmlspecialchars($order_no); ?>
-        </div>
-        <div class="instruction">
-            <p>请使用微信扫描二维码完成支付</p>
-            <p>若无法识别二维码，请点击下方按钮复制支付链接，并在微信中打开付款</p>
-        </div>
-        <button id="copyBtn" class="btn btn-success btn-lg btn-copy">复制支付链接</button>
-    </div>
-</div>
-
+<main id="main" class="page-main"><section class="panel result-panel"><div class="result-icon">▦</div><h1>微信扫码支付</h1><p class="muted">打开微信扫一扫，完成本次支付。</p><div class="qr-code"><img src="data:image/png;base64,<?= $imageData ?>" alt="本次订单微信支付二维码" width="230" height="230"></div><p class="order-number">订单号：<?= sf_e($order_no) ?></p><p id="payment-status" aria-live="polite">等待支付结果…</p><div class="result-actions"><button id="copyBtn" class="button secondary" type="button">复制支付链接</button><a class="button" href="orders.php?order_no=<?= rawurlencode($order_no) ?>">查询订单</a></div></section></main>
 <script>
-// 订单状态轮询，每 5 秒检测一次支付结果
-var orderNo = "<?php echo $order_no; ?>";
-var checkInterval = setInterval(function() {
-    var xhr = new XMLHttpRequest();
-    xhr.open("GET", "check_order.php?order_no=" + orderNo, true);
-    xhr.onreadystatechange = function() {
-        if (xhr.readyState === 4 && xhr.status === 200) {
-            var data = JSON.parse(xhr.responseText);
-            if (data.status === "paid") {
-                clearInterval(checkInterval);
-                alert("支付成功！");
-                window.location.href = "pay_success.php?order_no=" + orderNo;
-            }
-        }
-    };
-    xhr.send();
-}, 5000);
-
-// 复制支付链接功能
-document.getElementById('copyBtn').addEventListener('click', function() {
-    var link = "<?php echo $code_url; ?>";
-    if (navigator.clipboard) {
-        navigator.clipboard.writeText(link).then(function() {
-            alert("支付链接已复制，请打开微信并粘贴进行支付。");
-        }, function(err) {
-            alert("复制失败，请手动复制支付链接：" + link);
-        });
-    } else {
-        // 如果浏览器不支持 Clipboard API，则提示手动复制
-        prompt("复制支付链接：", link);
-    }
-});
+const orderNo=<?= json_encode($order_no,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?>;
+const paymentLink=<?= json_encode($code_url,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?>;
+let stopped=false;
+async function pollPayment(){
+ if(stopped)return;
+ try{const response=await fetch('check_order.php?order_no='+encodeURIComponent(orderNo)); if(!response.ok)throw new Error(); const data=await response.json();
+ if(data.status==='paid'){stopped=true;location.href='pay_success.php?order_no='+encodeURIComponent(orderNo);return;}
+ if(data.status==='cancelled'){stopped=true;document.getElementById('payment-status').textContent='订单已取消，请查询订单详情。';return;}
+ document.getElementById('payment-status').textContent='等待支付结果…';
+ }catch{document.getElementById('payment-status').textContent='正在重新连接，可使用订单查询核对状态。';}
+ if(!stopped)setTimeout(pollPayment,5000);
+}
+setTimeout(pollPayment,3000);
+window.addEventListener('pagehide',()=>stopped=true);
+document.getElementById('copyBtn').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(paymentLink);document.getElementById('copyBtn').textContent='已复制';}catch{document.getElementById('payment-status').textContent='请使用微信扫描上方二维码。';}});
 </script>
-
-<!-- 引入 jQuery 和 Bootstrap JS -->
-<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.bundle.min.js" integrity="sha384-1CmrxMRARb6aLqgBO7yyAxTOQE2AKb9GfXnEo760AUcUmFx3ibVJJAzGytlQcNXd" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-</body>
-</html>
+<?php sf_footer(); ?>

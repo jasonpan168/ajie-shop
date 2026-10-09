@@ -1,68 +1,11 @@
 <?php
-// pay_success.php
-$order_no = isset($_GET['order_no']) ? $_GET['order_no'] : '';
+require_once __DIR__.'/db.php';
+require_once __DIR__.'/storefront/theme.php';
+$theme=sf_theme($pdo);
+$order_no=is_string($_GET['order_no']??null)?trim($_GET['order_no']):'';
+$stmt=$pdo->prepare('SELECT status FROM orders WHERE order_no = ?');
+$stmt->execute([$order_no]); $status=$stmt->fetchColumn();
+$paid=$status==='paid';
+sf_header($theme,$paid?'支付成功':'订单状态');
 ?>
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <title>支付成功</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- 引入 Bootstrap 4 CSS -->
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous" referrerpolicy="no-referrer">
-  <!-- 引入 Font Awesome 用于显示图标 -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" integrity="sha384-SZXxX4whJ79/gErwcOYf+zWLeJdY/qpuqC4cAa9rOGUstPomtqpuNWT9wdPEn2fk" crossorigin="anonymous" referrerpolicy="no-referrer">
-  <style>
-    body {
-      background: #f8f9fa;
-      padding-top: 70px;
-      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    }
-    .result-box {
-      max-width: 500px;
-      margin: 30px auto;
-    }
-    .result-card {
-      border: none;
-      border-radius: 10px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-    .result-card .card-body {
-      padding: 30px;
-    }
-    .result-icon {
-      font-size: 60px;
-      color: #28a745;
-      margin-bottom: 20px;
-    }
-  </style>
-</head>
-<body>
-  <nav class="navbar navbar-expand-lg navbar-dark bg-success fixed-top">
-    <div class="container">
-      <a class="navbar-brand" href="index.php">阿杰的站</a>
-      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" 
-              aria-controls="navbarNav" aria-expanded="false" aria-label="切换导航">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-    </div>
-  </nav>
-
-  <div class="container result-box text-center">
-    <div class="card result-card">
-      <div class="card-body">
-        <div class="result-icon">
-          <i class="fas fa-check-circle"></i>
-        </div>
-        <h2 class="card-title text-success">支付成功！</h2>
-        <p class="card-text">订单号：<?php echo htmlspecialchars($order_no); ?></p>
-        <a href="index.php" class="btn btn-primary btn-lg mt-3">返回首页</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- 引入 jQuery 和 Bootstrap JS -->
-  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.bundle.min.js" integrity="sha384-1CmrxMRARb6aLqgBO7yyAxTOQE2AKb9GfXnEo760AUcUmFx3ibVJJAzGytlQcNXd" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-</body>
-</html>
+<main id="main" class="page-main"><section class="panel result-panel"><div class="result-icon"><?= $paid?'✓':'◷' ?></div><h1><?= $paid?'支付成功':($status==='cancelled'?'订单已取消':'暂未确认支付') ?></h1><p class="order-number">订单号：<?= sf_e($order_no?:'未提供') ?></p><p class="muted"><?= $paid?'付款已确认，可前往订单查询查看订单信息。':'如果已经付款，请稍后查询订单状态，避免重复支付。' ?></p><div class="result-actions"><a class="button" href="orders.php?order_no=<?= rawurlencode($order_no) ?>">查看订单 →</a><a class="button secondary" href="index.php">继续选购</a></div></section></main><?php sf_footer(); ?>
