@@ -58,7 +58,7 @@ $ip_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <div class="container mt-4">
-    <h2>IP限制管理</h2>
+    <h1>IP限制管理</h1>
     
     <?php if (isset($success)): ?>
     <div class="alert alert-success">

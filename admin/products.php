@@ -59,7 +59,7 @@ require_once 'includes/header.php';
 ?>
     <!-- 主内容区域 -->
     <main role="main" class="content">
-      <h2 class="mt-4">商品管理</h2>
+      <h1>商品管理</h1>
       <!-- 添加商品按钮，点击后展开内嵌表单 -->
       <button class="btn btn-success mb-3" type="button" data-toggle="collapse" data-target="#addProductForm" aria-expanded="false" aria-controls="addProductForm">
         添加商品
@@ -117,7 +117,7 @@ require_once 'includes/header.php';
             <td><?php echo htmlspecialchars($p['title']); ?></td>
             <td><?php echo htmlspecialchars($p['price']); ?></td>
             <td><?php echo htmlspecialchars($p['stock']); ?></td>
-            <td><img src="<?php echo htmlspecialchars($p['cover']); ?>" class="table-img" alt="封面"></td>
+            <td><?php $cover=(string)$p['cover']; if($cover!=='' && !preg_match('~^(https?:)?//|^/~i',$cover)) $cover='../'.$cover; ?><?php if($cover!==''): ?><img src="<?php echo htmlspecialchars($cover); ?>" class="table-img" alt="" loading="lazy"><?php else: ?><span class="text-muted">—</span><?php endif; ?></td>
             <td>
               <?php if ($p['status'] == 1): ?>
                 <span class="badge badge-success">已上架</span>

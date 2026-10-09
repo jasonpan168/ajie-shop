@@ -1,15 +1,17 @@
+<?php require_once __DIR__ . '/../../storefront/theme.php'; $admin_brand = sf_brand(); ?>
 <!DOCTYPE html>
 <html lang="zh">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><?php echo $page_title ?? '管理后台'; ?></title>
+  <title><?php echo htmlspecialchars(($page_title ?? '管理后台') . ' · ' . $admin_brand['name']); ?></title>
+  <meta name="robots" content="noindex">
   <!-- Bootstrap 4 CSS -->
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous" referrerpolicy="no-referrer">
   <!-- Font Awesome 图标 -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous" referrerpolicy="no-referrer">
   <!-- 自定义样式 -->
-  <link rel="stylesheet" href="/admin/css/admin-style.css?v=20261009-2">
+  <link rel="stylesheet" href="/admin/css/admin-style.css?v=20261010-4">
   <!-- Chart.js 库 -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" integrity="sha384-JUh163oCRItcbPme8pYnROHQMC6fNKTBWtRG3I3I0erJkzNgL7uxKlNwcrcFKeqF" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
@@ -17,8 +19,9 @@
 <div class="container-fluid">
   <div class="row">
     <!-- 侧边栏 -->
-    <nav class="col-md-2 sidebar d-none d-md-block">
+    <nav class="sidebar" aria-label="后台导航">
       <div class="sidebar-sticky">
+        <div class="admin-brand"><strong><?php echo htmlspecialchars($admin_brand['name']); ?></strong><span>管理后台 <a href="../index.php" target="_blank" rel="noopener">查看商城 ↗</a></span></div>
         <ul class="nav flex-column">
           <!-- 概览 -->
           <li class="nav-item">

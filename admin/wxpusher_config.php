@@ -61,7 +61,7 @@ require_once 'includes/header.php';
 
 <main role="main" class="content">
     <div class="container-fluid">
-        <h2 class="mt-4 mb-4">WxPusher配置</h2>
+        <h1>WxPusher配置</h1>
         
         <?php if (isset($success_message)): ?>
         <div class="alert alert-success alert-dismissible fade show">

@@ -56,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
 <div class="container mt-5">
-    <h2>创建发卡任务</h2>
+    <h1>创建发卡任务</h1>
     <form method="post" action="create_card_task.php">
         <div class="form-group">
             <label for="product_id">选择商品</label>

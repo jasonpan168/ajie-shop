@@ -30,7 +30,13 @@ $config = $stmt->fetch(PDO::FETCH_ASSOC);
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $appid      = trim($_POST['appid']);
     $mch_id     = trim($_POST['mch_id']);
-    $api_key    = trim($_POST['api_key']);
+    // 商户 API 密钥：留空表示不修改；填写的是明文，在服务端加密后保存（加密密钥只在 config.php，绝不下发到浏览器）
+    $api_key_input = is_string($_POST['api_key'] ?? null) ? trim($_POST['api_key']) : '';
+    if ($api_key_input === '') {
+        $api_key = $config['api_key'] ?? '';
+    } else {
+        $api_key = openssl_encrypt($api_key_input, 'AES-128-ECB', $encryption_key);
+    }
     $notify_url = trim($_POST['notify_url']);
     $enabled    = isset($_POST['enabled']) ? 1 : 0;
     
@@ -69,13 +75,8 @@ require_once 'includes/header.php';
         </div>
         <div class="form-group">
           <label for="api_key">支付API密钥</label>
-          <div class="input-group">
-            <input type="text" name="api_key" id="api_key" class="form-control" required value="<?php echo htmlspecialchars($config['api_key'] ?? ''); ?>">
-            <div class="input-group-append">
-              <button type="button" id="encryptBtn" class="btn btn-info">加密密钥</button>
-            </div>
-          </div>
-          <small class="form-text text-muted">请先输入原始密钥，再点击“加密密钥”按钮生成加密后的密钥。</small>
+          <input type="password" name="api_key" id="api_key" class="form-control" autocomplete="new-password" placeholder="<?php echo !empty($config['api_key']) ? '已设置，留空表示不修改' : '填写商户平台的 APIv2 密钥'; ?>" <?php echo empty($config['api_key']) ? 'required' : ''; ?>>
+          <small class="form-text text-muted">保存时在服务器端自动加密，页面不会显示已保存的密钥。</small>
         </div>
         <div class="form-group">
           <label for="notify_url">回调通知地址 (Notify URL)</label>
@@ -97,26 +98,6 @@ require_once 'includes/header.php';
 <!-- 引入 jQuery 和 Bootstrap JS -->
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.bundle.min.js" integrity="sha384-1CmrxMRARb6aLqgBO7yyAxTOQE2AKb9GfXnEo760AUcUmFx3ibVJJAzGytlQcNXd" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<!-- 引入 CryptoJS 库（用于 AES 加密） -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js" integrity="sha384-S3wQ/l0OsbJoFeJC81UIr3JOlx/OzNJpRt1bV+yhpWQxPAahfpQtpxBSfn+Isslc" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script>
-document.getElementById('encryptBtn').addEventListener('click', function() {
-    var rawKey = document.getElementById('api_key').value.trim();
-    if (!rawKey) {
-       alert("请输入需要加密的API密钥");
-       return;
-    }
-    // 定义加密密钥，与 PHP 中使用的加密密钥一致（16个字符）
-    var encryptionKey = CryptoJS.enc.Utf8.parse('abcdefghijklmno1sdw33kco2');
-    // 使用 AES-128-ECB 模式进行加密
-    var encrypted = CryptoJS.AES.encrypt(rawKey, encryptionKey, {
-         mode: CryptoJS.mode.ECB,
-         padding: CryptoJS.pad.Pkcs7
-    });
-    // 将加密结果转换为字符串，并更新到输入框
-    document.getElementById('api_key').value = encrypted.toString();
-    alert("密钥已加密");
-});
-</script>
+
 </body>
 </html>

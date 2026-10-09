@@ -81,7 +81,8 @@ require_once 'includes/header.php';
 ?>
     <!-- 主内容区域 -->
     <main role="main" class="content">
-      <div class="card mt-4">
+      <h1>易支付配置</h1>
+<div class="card mt-4">
         <div class="card-header">
           <h3 class="mb-0">配置易支付接口</h3>
         </div>

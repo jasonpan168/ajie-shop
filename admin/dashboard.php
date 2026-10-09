@@ -199,29 +199,28 @@ require_once 'includes/header.php';
           datasets: [{
               label: '订单数量',
               data: <?php echo json_encode($order_trend); ?>,
-              backgroundColor: 'rgba(54, 162, 235, 0.2)',
-              borderColor: 'rgba(54, 162, 235, 1)',
-              borderWidth: 2,
+              backgroundColor: 'rgba(15, 159, 154, 0.08)',
+              borderColor: '#0f9f9a',
+              borderWidth: 1.5,
               fill: true,
-              lineTension: 0.1,
-              pointRadius: 3
+              tension: 0.25,
+              pointRadius: 0,
+              pointHoverRadius: 4
           }]
       },
       options: {
           scales: {
+              x: { grid: { display: false }, ticks: { color: '#9a968e', font: { size: 11 } } },
               y: {
+                  grid: { color: '#efece5' },
+                  border: { display: false },
                   beginAtZero: true,
                   ticks: {
                       stepSize: 1
                   }
               }
           },
-          plugins: {
-              legend: {
-                  display: true,
-                  position: 'top'
-              }
-          },
+          plugins: { legend: { display: false } },
           responsive: true,
           maintainAspectRatio: false
       }
