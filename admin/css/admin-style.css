@@ -20,6 +20,7 @@
   --a-serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", serif;
   --a-sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif;
   --a-side-w: 232px;
+  --a-content-max: 1600px;  /* 超宽屏时内容区最大宽度，居中显示 */
 }
 
 html, body { background: var(--a-bg); }
@@ -74,35 +75,48 @@ a:hover { color: var(--a-accent); text-decoration: none; }
 .admin-brand a { color: var(--a-muted); font-size: 12px; }
 .admin-brand a:hover { color: var(--a-accent); }
 .sidebar .nav-item { width: 100%; }
+.sidebar .nav-item:has(> .sidebar-heading) { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--a-line); }
+.sidebar .nav-item:first-child:has(> .sidebar-heading) { margin-top: 0; padding-top: 4px; border-top: 0; }
+/* 分组标题：小号灰字、不可点，仅作分类 */
 .sidebar-heading {
-  margin: 18px 0 4px !important;
+  margin: 0 0 6px !important;
   padding: 0 24px !important;
   font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 2px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
   color: var(--a-faint) !important;
+  cursor: default;
+  user-select: none;
 }
+/* 菜单项：缩进、成块、悬停变色，明确是可点的按钮 */
 .sidebar a.nav-link {
-  display: block;
+  display: flex;
+  align-items: center;
   position: relative;
-  padding: 7px 24px;
+  margin: 2px 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
   font-size: 14px;
-  color: var(--a-muted);
+  font-weight: 500;
+  color: #3d3a35;
   border: 0;
+  cursor: pointer;
   transition: color .15s, background .15s;
 }
 .sidebar a.nav-link i { display: none; }    /* 不用线条图标，靠文字与分组识别 */
-.sidebar a.nav-link:hover { color: var(--a-ink); background: var(--a-hover); }
-.sidebar a.nav-link.active { color: var(--a-ink); font-weight: 600; background: var(--a-hover); }
+.sidebar a.nav-link:hover { color: var(--a-ink); background: #ece9e1; }
+.sidebar a.nav-link.active { color: var(--a-ink); font-weight: 600; background: #e7e3d9; }
 .sidebar a.nav-link.active::before {
   content: "";
   position: absolute;
-  left: 0;
-  top: 6px;
-  bottom: 6px;
-  width: 2px;
+  left: -12px;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
   background: var(--a-accent);
 }
+.sidebar a.nav-link[href="logout.php"] { color: var(--a-muted); }
 
 /* ---------- 内容区 ---------- */
 .content {
@@ -113,8 +127,10 @@ a:hover { color: var(--a-accent); text-decoration: none; }
   background: var(--a-bg);
 }
 /* 页头已打开一层 .content，各页面又套了一层：内层不再重复留侧边栏的位置 */
-.content .content { margin-left: 0; width: 100%; padding: 0; min-height: 0; max-width: 1280px; }
-.content > .content, .content > .container, .content > .container-fluid { max-width: 1280px; }
+.content .content { margin-left: auto; margin-right: auto; width: 100%; padding: 0; min-height: 0; }
+/* 内容铺满侧边栏右侧；超宽屏时限宽并左右居中 */
+.content > * { max-width: var(--a-content-max); margin-left: auto; margin-right: auto; }
+.content > .content, .content > .container, .content > .container-fluid { max-width: var(--a-content-max); }
 
 h1, .h1 {
   font-family: var(--a-serif);
@@ -313,8 +329,9 @@ textarea.form-control { min-height: 96px; }
   .sidebar .nav { flex-direction: row !important; flex-wrap: nowrap; }
   .sidebar .nav-item { width: auto; }
   .sidebar-heading { display: none; }
-  .sidebar a.nav-link { padding: 14px 12px; white-space: nowrap; }
-  .sidebar a.nav-link.active::before { left: 12px; right: 12px; top: auto; bottom: 0; width: auto; height: 2px; }
+  .sidebar .nav-item:has(> .sidebar-heading) { display: none; }
+  .sidebar a.nav-link { margin: 6px 2px; padding: 8px 12px; white-space: nowrap; }
+  .sidebar a.nav-link.active::before { display: none; }
   .content { margin-left: 0; width: 100%; padding: 20px 16px 48px; }
   h1, .h1 { font-size: 24px; margin-bottom: 18px !important; }
   .card-body { padding: 16px; }
@@ -357,3 +374,6 @@ body > .container-fluid { padding: 0; }
   .row > .col-md-3 .card { margin-bottom: 0; }
   .row > .col-md-3 .card-body { padding: 14px; }
 }
+/* 栅格行保留 Bootstrap 的负边距，与标题左对齐 */
+.content > .row { margin-left: -15px; margin-right: -15px; max-width: none; }
+@media (max-width: 767.98px) { .content > .row { margin-left: -6px; margin-right: -6px; } }
