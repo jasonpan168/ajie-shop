@@ -68,199 +68,37 @@ if (!$wechat_ready) {
     exit;
 }
 
-// 检查必填参数：产品 id, 买家昵称, 邮箱, 数量, 价格
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    // 获取真实IP地址
-    $ip = $_SERVER['REMOTE_ADDR'];
-    if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-        $forwarded_ips = array_map('trim', explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']));
-        $ip = $forwarded_ips[0];
-    } elseif (isset($_SERVER['HTTP_CLIENT_IP'])) {
-        $ip = $_SERVER['HTTP_CLIENT_IP'];
-    }
-    if (!filter_var($ip, FILTER_VALIDATE_IP)) {
-        $ip = $_SERVER['REMOTE_ADDR'];
-    }
+    require_once 'lib/order_service.php';
 
-    // 检查IP限制
-    if (!checkIpLimit($ip)) {
-        $error_msg = "提交订单过于频繁。为了保证服务质量，每个IP地址：\n";
-        $error_msg .= "1. 每次提交订单需间隔至少60秒\n";
-        $error_msg .= "2. 10分钟内最多可提交3个订单\n";
-        $error_msg .= "请稍后再试。";
-        die($error_msg);
-    }
-    if (!isset($_GET['id']) || !isset($_GET['nickname']) || !isset($_GET['email']) ||
-        !isset($_GET['quantity']) || !isset($_GET['price'])) {
-        die("缺少必要参数，请返回重试。");
-    }
-    
-    $product_id = intval($_GET['id']);
-    $nickname   = trim($_GET['nickname']);
-    $email      = trim($_GET['email']);
-    $quantity   = intval($_GET['quantity']);
-    $price      = floatval($_GET['price']);
-
-    // 参数验证
-    if (empty($nickname) || !InputValidator::validateStringLength($nickname, 1, 100)) {
-        die("昵称无效，请输入1-100个字符的昵称");
-    }
-
-    // Email 验证
-    if (!InputValidator::validateEmail($email)) {
-        Logger::logSecurityEvent('Invalid Email Attempt', 'WARNING', ['email' => $email]);
-        die("邮箱地址无效，请重新输入");
-    }
-    $email = InputValidator::sanitizeEmail($email);
-
-    // 数量验证
-    if (!InputValidator::validateIntRange($quantity, 1, 10000)) {
-        die("购买数量无效，请输入1-10000之间的数字");
-    }
-
-    // 价格验证
-    if (!InputValidator::validateFloatRange($price, 0.01, 999999)) {
-        die("商品价格无效");
-    }
-
-    // 验证商品存在且价格匹配（防止价格篡改）
-    $stmt = $pdo->prepare("SELECT id, price, stock FROM products WHERE id = ?");
-    $stmt->execute([$product_id]);
-    $product_check = $stmt->fetch(PDO::FETCH_ASSOC);
-    if (!$product_check) {
-        die("商品不存在");
-    }
-    // 验证价格是否被篡改（允许小数误差）
-    if (abs($product_check['price'] - $price) > 0.01) {
-        die("商品价格异常，请重新选择商品");
-    }
-    // 使用数据库中的真实价格
-    $price = $product_check['price'];
-    $amount     = $price * $quantity; // 总金额（单位元）
-
-    // 处理优惠码
-    $coupon_id = isset($_GET['coupon_id']) ? intval($_GET['coupon_id']) : 0;
-    $coupon_code = isset($_GET['coupon_code_hidden']) ? trim($_GET['coupon_code_hidden']) : '';
-    $coupon_amount = isset($_GET['coupon_amount']) ? floatval($_GET['coupon_amount']) : 0;
-    
-    // 应用优惠码抵扣
-    if ($coupon_amount > 0) {
-        // 确保优惠金额不超过订单总额
-        if ($coupon_amount > $amount) {
-            $coupon_amount = $amount;
-        }
-        // 计算优惠后的实际支付金额
-        $amount = $amount - $coupon_amount;
-        // 确保金额不小于0
-        if ($amount < 0) {
-            $amount = 0;
-        }
-    }
-
-    if (empty($nickname) || empty($email)) {
-        die("姓名/昵称和邮箱为必填项。");
-    }
-
-    // 检查库存（产品已在之前验证过）
-    if ($quantity > $product_check['stock']) {
-        die("库存不足");
-    }
-
-    // 获取完整的产品信息用于数据库插入
-    $stmt = $pdo->prepare("SELECT * FROM products WHERE id = ?");
-    $stmt->execute([$product_id]);
-    $product = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    // 生成订单号（确保唯一）
-    $order_no = date("YmdHis") . rand(1000, 9999);
-
-    // 支付方式：确保原生微信支付使用 "wxpay"
-    $type = isset($_GET['type']) ? trim($_GET['type']) : "wxpay";  // 默认值为 wxpay
-
-    // 将订单记录插入数据库，并写入支付方式（pay_type）
+    // 价格、优惠金额全部由服务端按数据库计算，浏览器传来的 price/coupon_amount 一律忽略；
+    // 只认 REMOTE_ADDR，同一 IP 的限流检查与建单串行执行
+    $ip = client_ip();
+    $type = 'wxpay';
     try {
-        $stmt = $pdo->prepare("
-            INSERT INTO orders 
-                (order_no, product_id, product_title, nickname, email, quantity, amount, status, created_at, pay_type, coupon_id, coupon_code, coupon_amount, ip)
-            VALUES 
-                (?, ?, ?, ?, ?, ?, ?, 'pending', NOW(), ?, ?, ?, ?, ?)
-        ");
-        // 这里使用产品的 title 字段作为产品名称
-        $stmt->execute([
-            $order_no,
-            $product_id,
-            $product['title'],
-            $nickname,
-            $email,
-            $quantity,
-            $amount,
-            $type,
-            $coupon_id,
-            $coupon_code,
-            $coupon_amount,
-            $ip
-        ]);
-
-        // 记录订单创建日志
-        Logger::logAction('Order Created', $order_no, [
-            'product_id' => $product_id,
-            'email' => $email,
-            'amount' => $amount,
-            'ip' => $ip,
-            'pay_type' => $type
-        ]);
-
-        // 发送Telegram下单通知
-        // 发送Telegram下单通知
-        try {
-            require_once 'lib/TelegramNotifier.php';
-            require_once 'lib/WxPusherNotifier.php';
-            $telegramStmt = $pdo->query("SELECT * FROM telegram_config WHERE enabled = 1 LIMIT 1");
-            $telegramConfig = $telegramStmt->fetch(PDO::FETCH_ASSOC);
-            
-            $orderData = [
-                'order_no' => $order_no,
-                'product_title' => $product['title'],
-                'quantity' => $quantity,
-                'amount' => $amount,
-                'email' => $email,
-                'pay_type' => $type,
-                'created_at' => date('Y-m-d H:i:s')
-            ];
-            
-            // 发送Telegram通知
-            if ($telegramConfig) {
-                error_log("Telegram配置信息：bot_token=" . substr($telegramConfig['bot_token'], 0, 10) . "..., chat_id=" . $telegramConfig['chat_id']);
-                error_log("准备发送Telegram通知，订单数据：" . json_encode($orderData, JSON_UNESCAPED_UNICODE));
-                $notifier = new TelegramNotifier($telegramConfig['bot_token'], $telegramConfig['chat_id']);
-                $notifier->sendOrderNotification($orderData);
-                error_log("Telegram通知发送成功：订单号 " . $order_no);
-            } else {
-                error_log("未找到启用的Telegram配置");
+        $order = with_ip_lock($pdo, $ip, function () use ($pdo, $ip, $type) {
+            if (!checkIpLimit($ip)) {
+                throw new RuntimeException("提交订单过于频繁：每次下单需间隔至少 60 秒，10 分钟内最多 3 单，请稍后再试。");
             }
-            
-            // 发送WxPusher通知
-            $wxPusher = new WxPusherNotifier();
-            if ($wxPusher->sendOrderNotification($orderData)) {
-                error_log("WxPusher下单通知发送成功：订单号 " . $order_no);
-            } else {
-                error_log("WxPusher下单通知发送失败或未启用");
-            }
-        } catch (Exception $e) {
-            error_log("通知发送失败：" . $e->getMessage() . "\n" . $e->getTraceAsString());
-        }
+            return create_pending_order($pdo, $_GET, $type);
+        });
+    } catch (RuntimeException $e) {
+        die(htmlspecialchars($e->getMessage()));
     } catch (Exception $e) {
-        die("订单创建失败：" . $e->getMessage());
+        app_log('order', '微信下单失败: ' . $e->getMessage());
+        die('订单创建失败，请稍后重试。');
     }
+    $order_no   = $order['order_no'];
+    $product_id = $order['product_id'];
+    $quantity   = $order['quantity'];
+    $nickname   = $order['nickname'];
+    $email      = $order['email'];
+    $product    = ['title' => $order['product_title']];
+    send_order_created_notifications($pdo, $order);
 
     // 构造附加数据（用于微信统一下单回调时关联订单）
-    $attachData = [
-        'product_id' => $product_id,
-        'quantity'   => $quantity,
-        'nickname'   => $nickname,
-        'email'      => $email
-    ];
-    $attach = json_encode($attachData);
+    // attach 只放订单号，回调一律以数据库订单为准
+    $attach = $order_no;
 
     // 微信统一下单接口参数（请确保 config.php 中定义了以下变量）
     $appid      = $merchant_appid;
@@ -271,6 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     // 任何情况下都不允许静默回落到作者自己的域名。
     $notify_url = trim((string)($wechat_config['notify_url'] ?? ($configData['notify_url'] ?? '')));
     if (!is_valid_notify_url($notify_url)) {
+        cancel_pending_order($pdo, $order_no);
         Logger::logSecurityEvent('Invalid notify_url', 'ERROR', array('order' => $order_no));
         die('支付回调地址（notify_url）未配置或格式错误。请登录后台「微信支付配置」，'
             . '填写你自己的回调地址（例如 https://你的域名/notify.php）后重试。');
@@ -328,10 +167,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         'appid'            => $appid,
         'mch_id'           => $mch_id,
         'nonce_str'        => createNonceStr(),
-        'body' => $product['title'],
+        'body'             => mb_substr($product['title'], 0, 40),
         'out_trade_no'     => $order_no,
-        'total_fee'        => intval($amount * 100), // 单位为分
-        'spbill_create_ip' => $_SERVER['REMOTE_ADDR'],
+        'total_fee'        => $order['amount_cents'], // 单位为分，服务端计算
+        'spbill_create_ip' => $ip,
         'notify_url'       => $notify_url,
         'trade_type'       => 'NATIVE',
         'attach'           => $attach
@@ -355,10 +194,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             isset($result["result_code"]) && $result["result_code"] == "SUCCESS") {
             $code_url = $result["code_url"];
         } else {
-            die("微信支付错误: " . ($result["return_msg"] ?? "未知错误"));
+            cancel_pending_order($pdo, $order_no);
+            app_log('order', "微信统一下单失败 $order_no: " . ($result["return_msg"] ?? '') . ' ' . ($result["err_code_des"] ?? ''));
+            die("微信支付暂时不可用，请稍后重试或换一种支付方式。");
         }
     } else {
-        die("无法连接微信支付接口，请检查网络。");
+        cancel_pending_order($pdo, $order_no);
+        die("无法连接微信支付接口，请稍后重试。");
     }
 
     $_SESSION['order_data'] = [

@@ -48,16 +48,16 @@ class EpayCore
 
     // 异步回调验证
     public function verifyNotify(){
-        if(empty($_GET)) return false;
+        if(empty($_GET['sign']) || !is_string($_GET['sign'])) return false;
         $sign = $this->getSign($_GET);
-        return ($sign === $_GET['sign']);
+        return hash_equals($sign, $_GET['sign']);
     }
 
     // 同步回调验证
     public function verifyReturn(){
-        if(empty($_GET)) return false;
+        if(empty($_GET['sign']) || !is_string($_GET['sign'])) return false;
         $sign = $this->getSign($_GET);
-        return ($sign === $_GET['sign']);
+        return hash_equals($sign, $_GET['sign']);
     }
 
     // 构造请求参数

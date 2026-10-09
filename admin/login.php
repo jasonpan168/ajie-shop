@@ -87,8 +87,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $locked_remaining === 0) {
         Logger::logCsrfAttempt('admin/login.php');
         $error = '会话已过期或请求无效，请刷新页面后重试。';
     } else {
-        $username = trim($_POST['username'] ?? '');
-        $password = (string)($_POST['password'] ?? '');
+        $username = is_string($_POST['username'] ?? null) ? trim($_POST['username']) : '';
+        $password = is_string($_POST['password'] ?? null) ? $_POST['password'] : '';
 
         $stmt = $pdo->prepare("SELECT * FROM admin WHERE username = ?");
         $stmt->execute([$username]);

@@ -17,156 +17,56 @@
  */
 
 require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/lib/epay.config.php';
-require_once __DIR__ . '/lib/EpayCore.class.php';
-require_once __DIR__ . '/clean_orders.php';
 
-// 检查易支付配置
-$stmt = $pdo->query("SELECT * FROM epay_config LIMIT 1");
-$epay_config = $stmt->fetch(PDO::FETCH_ASSOC);
-
-$epay_ready = $epay_config && $epay_config['enabled'] &&
-              (!empty($epay_config['alipay_enabled']) ||
-               !empty($epay_config['wxpay_enabled']) ||
-               !empty($epay_config['usdt_enabled'])) &&
-              !empty($epay_config['api_url']) &&
-              !empty($epay_config['pid']) &&
-              !empty($epay_config['key']);
-
+// 检查易支付配置是否已填写（字段以 database.sql 的 epay_config 表为准）
+$epay_row = $pdo->query("SELECT * FROM epay_config LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+$epay_ready = $epay_row &&
+              (!empty($epay_row['alipay_enabled']) || !empty($epay_row['wxpay_enabled']) || !empty($epay_row['usdt_enabled'])) &&
+              !empty($epay_row['apiurl']) && !empty($epay_row['pid']) && !empty($epay_row['key']);
 if (!$epay_ready) {
     header('Location: payment-setup-guide.php?type=epay');
     exit;
 }
 
-// 获取客户端IP地址
-$ip = $_SERVER['REMOTE_ADDR'];
-if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-    $forwarded_ips = array_map('trim', explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']));
-    $ip = $forwarded_ips[0];
-} elseif (isset($_SERVER['HTTP_CLIENT_IP'])) {
-    $ip = $_SERVER['HTTP_CLIENT_IP'];
-}
+require_once __DIR__ . '/lib/epay.config.php';
+require_once __DIR__ . '/lib/EpayCore.class.php';
+require_once __DIR__ . '/clean_orders.php';
 
-// 检查IP限制
-if (!checkIpLimit($ip)) {
-    die("提交订单过于频繁，请稍后再试。");
-}
+require_once __DIR__ . '/lib/order_service.php';
 
-// 1. 获取订单相关参数
-$product_id = isset($_GET['id']) ? intval($_GET['id']) : 1;
-$nickname   = isset($_GET['nickname']) ? trim($_GET['nickname']) : "匿名";
-$email      = isset($_GET['email']) ? trim($_GET['email']) : "test@example.com";
-$quantity   = isset($_GET['quantity']) ? intval($_GET['quantity']) : 1;
-$price      = isset($_GET['price']) ? floatval($_GET['price']) : 4.51;
-$type = isset($_GET['type']) ? trim($_GET['type']) : "alipay"; // 用户选择的支付方式
+$ip = client_ip();
 
-// 处理优惠码
-$coupon_id = isset($_GET['coupon_id']) ? intval($_GET['coupon_id']) : 0;
-$coupon_code = isset($_GET['coupon_code_hidden']) ? trim($_GET['coupon_code_hidden']) : '';
-$coupon_amount = isset($_GET['coupon_amount']) ? floatval($_GET['coupon_amount']) : 0;
 
-// 验证支付类型
-if (!in_array($type, ['alipay', 'wxpay', 'usdt'])) {
+// 只允许后台已开启的支付方式
+$type = isset($_GET['type']) ? (is_string($_GET['type']) ? trim($_GET['type']) : '') : '';
+$enabled = $pdo->query("SELECT alipay_enabled, wxpay_enabled, usdt_enabled FROM epay_config LIMIT 1")->fetch(PDO::FETCH_ASSOC) ?: [];
+$allowed = array_keys(array_filter([
+    'alipay' => !empty($enabled['alipay_enabled']),
+    'wxpay'  => !empty($enabled['wxpay_enabled']),
+    'usdt'   => !empty($enabled['usdt_enabled']),
+]));
+if (!in_array($type, $allowed, true)) {
     die("不支持的支付方式");
 }
 
-// 2. 查询商品信息（如果存在）获取商品名称和价格
-$stmt = $pdo->prepare("SELECT title, price FROM products WHERE id = ?");
-$stmt->execute([$product_id]);
-$productData = $stmt->fetch(PDO::FETCH_ASSOC);
-if ($productData) {
-    $product_title = $productData['title'];
-    if ($price == 0) {
-        $price = floatval($productData['price']);
-    }
-} else {
-    $product_title = "未知产品";
-}
-
-// 3. 定义订单名称（直接使用商品名称）
-$order_name = $product_title;
-
-// 4. 计算总金额（单位：元）
-$money = $price * $quantity;
-
-// 应用优惠码抵扣
-if ($coupon_amount > 0) {
-    // 确保优惠金额不超过订单总额
-    if ($coupon_amount > $money) {
-        $coupon_amount = $money;
-    }
-    // 计算优惠后的实际支付金额
-    $money = $money - $coupon_amount;
-    // 确保金额不小于0
-    if ($money < 0) {
-        $money = 0;
-    }
-}
-
-// 格式化金额
-$money = number_format($money, 2, ".", "");
-
-// 5. 生成唯一订单号，并插入订单记录（状态初始设为 pending）
-$order_no = time() . rand(100, 999);
+// 价格、优惠金额全部由服务端按数据库计算，浏览器传来的 price/coupon_amount 一律忽略
 try {
-    $stmt = $pdo->prepare("
-        INSERT INTO orders 
-            (order_no, product_id, product_title, nickname, email, quantity, amount, status, created_at, pay_type, coupon_id, coupon_code, coupon_amount, ip)
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', NOW(), ?, ?, ?, ?, ?)
-    ");
-    $stmt->execute([
-        $order_no, 
-        $product_id, 
-        $product_title, 
-        $nickname, 
-        $email, 
-        $quantity, 
-        $money, 
-        $type, 
-        $coupon_id > 0 ? $coupon_id : null,
-        !empty($coupon_code) ? $coupon_code : null,
-        $coupon_amount > 0 ? $coupon_amount : 0,
-        $ip
-    ]);
-    
-    // 发送Telegram和WxPusher下单通知
-    try {
-        require_once 'lib/TelegramNotifier.php';
-        require_once 'lib/WxPusherNotifier.php';
-        $telegramStmt = $pdo->query("SELECT * FROM telegram_config WHERE enabled = 1 LIMIT 1");
-        $telegramConfig = $telegramStmt->fetch(PDO::FETCH_ASSOC);
-        
-        if ($telegramConfig) {
-            error_log("准备发送易支付下单Telegram通知，订单号：$order_no");
-            $orderData = [
-                'order_no' => $order_no,
-                'product_title' => $product_title,
-                'quantity' => $quantity,
-                'amount' => $money,
-                'email' => $email,
-                'pay_type' => $type,
-                'created_at' => date('Y-m-d H:i:s')
-            ];
-            $notifier = new TelegramNotifier($telegramConfig['bot_token'], $telegramConfig['chat_id']);
-            $notifier->sendOrderNotification($orderData);
-            error_log("易支付下单Telegram通知发送成功，订单号：$order_no");
-        } else {
-            error_log("未找到启用的Telegram配置，无法发送易支付下单通知");
+    $order = with_ip_lock($pdo, $ip, function () use ($pdo, $ip, $type) {
+        if (!checkIpLimit($ip)) {
+            throw new RuntimeException("提交订单过于频繁，请稍后再试。");
         }
-
-        // 发送WxPusher通知
-        $wxPusher = new WxPusherNotifier();
-        if ($wxPusher->sendOrderNotification($orderData)) {
-            error_log("易支付下单WxPusher通知发送成功，订单号：$order_no");
-        } else {
-            error_log("易支付下单WxPusher通知发送失败或未启用，订单号：$order_no");
-        }
-    } catch (Exception $e) {
-        error_log("易支付下单Telegram通知发送失败：" . $e->getMessage());
-    }
+        return create_pending_order($pdo, $_GET, $type);
+    });
+} catch (RuntimeException $e) {
+    die(htmlspecialchars($e->getMessage()));
 } catch (Exception $e) {
-    die("订单创建失败：" . $e->getMessage());
+    app_log('order', '易支付下单失败: ' . $e->getMessage());
+    die('订单创建失败，请稍后重试。');
 }
+$order_no   = $order['order_no'];
+$order_name = $order['product_title'];
+$money      = $order['amount'];
+send_order_created_notifications($pdo, $order);
 
 // 6. 构造彩虹易支付请求参数（配置文件中的地址末尾必须有斜杠）
 $params = [
@@ -185,6 +85,7 @@ $pay_link = $epay->getPayLink($params);
 
 // 8. 检查支付链接有效性，并跳转到支付页面
 if (!$pay_link || !filter_var($pay_link, FILTER_VALIDATE_URL)) {
+    cancel_pending_order($pdo, $order_no);
     die("支付链接生成失败。");
 }
 

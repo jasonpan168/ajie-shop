@@ -1,4 +1,11 @@
 <?php
+// 数据库升级脚本只允许在服务器命令行执行：php db_updates/xxx.php
+// 放在网站目录里时，任何人访问 URL 就会执行并改库（例如把 WxPusher 配置重置为空）。
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit;
+}
+
 // 执行数据库更新脚本
 require_once 'config.php';
 

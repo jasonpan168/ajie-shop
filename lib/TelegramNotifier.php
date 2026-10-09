@@ -33,8 +33,6 @@ class TelegramNotifier {
             'text' => $message,
             'parse_mode' => 'HTML'
         ];
-        error_log("Telegram API请求URL: " . $url);
-        error_log("Telegram API请求参数: " . json_encode($data, JSON_UNESCAPED_UNICODE));
 
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);

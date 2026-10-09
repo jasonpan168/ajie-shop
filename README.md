@@ -100,7 +100,7 @@ chmod -R 750 logs admin/uploads      # ③ 不要用 777
 | 商品描述 | 支持少量安全 HTML 标签（`<p> <br> <img> <strong> <em> <u>`） |
 | 封面图 | 图片 URL（外链或你自己的 CDN） |
 | 价格 | 单位元，例如 `9.90` |
-| 库存 | 支付成功后在事务里扣减，扣不动则回滚 |
+| 库存 | 下单时预扣，订单超时取消或在后台删除待付订单时退回 |
 | 排序 | 数字越小越靠前 |
 
 保存后回到前台首页就能看到，点进去就是 `product.php?id=<商品ID>`。
@@ -143,7 +143,7 @@ chmod -R 750 logs admin/uploads      # ③ 不要用 777
 
 ### ⚠️ 回调地址（notify_url）怎么配 —— 最容易出事的一步
 
-**回调地址必须是你自己域名下的地址。** 微信支付成功后，会把「订单号、金额、以及你在下单时塞进 `attach` 的买家昵称和邮箱」POST 到这个地址。填错了会发生两件事：
+**回调地址必须是你自己域名下的地址。** 微信支付成功后，会把「订单号、金额」等交易信息 POST 到这个地址（`attach` 里只放订单号，不再带买家昵称和邮箱）。填错了会发生两件事：
 
 1. 你的订单**永远不会变成已支付**（回调没到你这儿）；
 2. 你买家的个人信息被发到了别人的服务器上。
@@ -175,33 +175,27 @@ curl -I https://你的域名/notify.php
 #       它本来就只接受 POST。若是 403/404，说明 nginx 规则或路径不对）
 ```
 
-**② 打开原始报文日志，走一笔真实小额订单**（例如 0.01 元）：
+**② 走一笔真实小额订单**（例如 0.01 元），**③ 支付完成后看日志和订单状态**：
 
 ```bash
-# 只在排错时临时打开；它会把回调原文和买家邮箱写进日志
-PAY_LOG_RAW=1 systemctl restart php8.1-fpm    # 或在 .env 里加 PAY_LOG_RAW=1 后重启
+tail -n 50 logs/payment.log
+# 期望看到：[wechat] 入账成功 <订单号> 金额1分   （易支付是 [epay]）
+
+mysql -e "SELECT order_no,status,amount,card_sent FROM orders ORDER BY id DESC LIMIT 1" 你的库名
+# 期望：status = paid；自动发卡商品 card_sent = 1
 ```
 
-**③ 支付完成后看日志和订单状态**：
-
-```bash
-tail -n 50 logs/notify.log
-# 期望看到：Order <订单号> updated to paid.
-
-mysql -e "SELECT order_no,status,amount FROM orders ORDER BY id DESC LIMIT 1" 你的库名
-# 期望：status = paid
-```
-
-**④ 排错完立刻把 `PAY_LOG_RAW` 关掉并清理日志**，它记录的是买家个人信息。
+`logs/payment.log` 只记订单号、金额和处理结果，不记卡密和回调原文。需要人工处理的情况（卡密不足、发货邮件发送失败）会写进 `logs/alert.log`，并在开启了 Telegram 通知时推送给管理员。
 
 常见现象对照：
 
 | 现象 | 原因 |
 |---|---|
 | 日志里一条回调都没有 | 回调地址填错 / 不是 https / 公网访问不到 / 被 nginx deny 了 |
-| 日志有 `Signature verification failed` | 后台填的 API 密钥与商户平台的 APIv2 密钥不一致 |
-| 日志有 `Amount mismatch` | 订单金额与实付金额不符（正常情况下不该出现，请排查） |
-| 日志有 `Order xxx not found` | 回调打到了另一套部署上，或订单已被清理脚本删除 |
+| 日志有 `签名校验失败` | 微信：后台填的 API 密钥与商户平台的 APIv2 密钥不一致；易支付：商户密钥与网关后台不一致 |
+| 日志有 `appid/商户号不匹配` / `商户号或交易状态不符` | 回调来自别的商户号，或后台填错了 appid / 商户号 / pid |
+| 日志有 `金额不符，拒绝入账` | 实付金额与订单金额不一致，订单不会发货，请排查是否有人篡改 |
+| 日志有 `订单不存在` | 回调打到了另一套部署上 |
 
 ---
 
@@ -219,16 +213,35 @@ mysql -e "SELECT order_no,status,amount FROM orders ORDER BY id DESC LIMIT 1" �
 | `admin_login_attempts` | 后台登录失败的来源 **IP** | ✅ 是 |
 | `admin` | 管理员用户名、口令哈希 | — |
 | `wechat_config` / `epay_config` / `email_settings` | 商户密钥、SMTP 口令 | 🔑 凭据 |
-| `logs/*.log` | 运行日志；开启 `PAY_LOG_RAW` 后含回调原文与买家邮箱 | ✅ 是 |
+| `logs/*.log` | 运行日志：订单号、金额、处理结果；`alert.log` 含需人工补发订单的买家邮箱 | ✅ 是 |
 
 **部署者就是数据控制者。** 你向谁收集、存多久、怎么删除、是否需要隐私政策，由你按你所在地的法律（中国《个人信息保护法》、GDPR 等）自行负责。本项目不提供任何合规承诺。
 
 ### 支付回调怎么验的
 
-- **验签**：`notify.php` 按微信 APIv2 规则重算 MD5 签名，用 `hash_equals()` 做定长时间比较（防止按响应时间逐字节爆破）。签名不过直接返回 `FAIL`，不动数据库。
-- **金额校验**：把回调的 `total_fee`（分）与数据库里的订单金额比对，不一致就拒绝并记日志，防止支付金额被篡改。
-- **防重放 / 幂等**：订单若已是 `paid` / `shipped` / `completed`，重复回调直接忽略；状态更新与库存扣减在**同一个事务**里，库存不足则整体回滚，不会出现「扣了钱没扣库存」。
-- **自动发卡幂等**：靠 `orders.card_sent` 标记，同一订单不会重复发卡；依次发卡模式用 `SELECT ... FOR UPDATE` 锁定卡密行，避免并发发出同一张卡。
+微信（`notify.php`）和易支付（`notify_url.php`，旧地址 `rainbow_notify.php` 也转到它）走同一套入账逻辑 `lib/order_service.php`：
+
+- **验签**：按各自规则重算 MD5 签名，用 `hash_equals()` 做定长时间比较。签名不过直接拒绝，不动数据库。
+- **验商户**：微信校验 `appid` / `mch_id`，易支付校验 `pid` 和 `trade_status=TRADE_SUCCESS`，防止拿别的商户的合法通知来套。
+- **金额校验**：回调金额（统一换算成「分」比较）必须与数据库订单金额完全一致，否则拒绝入账、不发货。
+- **幂等 / 防并发**：入账在事务里先 `SELECT ... FOR UPDATE` 锁订单行，已支付的订单直接忽略；并发、重复回调只会入账一次、扣一次库存、发一次卡。回调里查不到的订单不会凭空建单。
+- **自动发卡**：微信和易支付订单都会自动发卡；只有卡密**发齐**才标记 `card_sent = 1`，没发齐会提醒管理员补发。
+
+### 从旧版本升级
+
+1. 升级前确认**没有待支付订单**：`SELECT COUNT(*) FROM orders WHERE status = 'pending';` 为 0 再升级（新版下单时预扣库存、超时取消时退回库存；旧版的待付订单当初没有预扣，升级后被取消会多退库存）。
+2. 执行 `db_updates/add_unique_order_no.sql`，给订单号加唯一索引（执行前先按文件里的语句确认没有重复订单号）。
+3. Nginx 部署按 [docs/INSTALLATION.md](docs/INSTALLATION.md) 补上新增的 `lib/`、`db_updates/` 等 deny 规则。
+4. 易支付「异步通知地址」建议改成 `notify_url.php`（旧的 `rainbow_notify.php` 仍可用，会转到同一套实现）。
+
+### 下单怎么防刷单
+
+- **价格、优惠金额只认数据库**：浏览器传来的 `price`、`coupon_amount` 一律忽略，金额全部在服务端计算（单位「分」，没有浮点误差）。下架商品、负数量、超库存、后台没开启的支付方式都会被拒绝。
+- **优惠码一码一用**：下单时在事务里校验并占用；订单超时取消也**不会**释放（否则迟到的付款会让同一张码被用两次），需要让顾客重新用码时，在数据库里把该码的 `status` 改回 `active` 即可。
+- **库存预占**：下单即预扣库存，超时取消或后台删除待付订单时退回，避免多笔待付订单超卖。
+- **超时订单不删除**：30 分钟未支付的订单置为「已取消」，迟到的付款仍会正常入账发货。
+- **下单限流**：只认 `REMOTE_ADDR`（不信任可伪造的 `X-Forwarded-For`），同一 IP 的限流检查与建单串行执行。如果你的站点在 CDN / 反向代理后面，需要在 Web 服务器层把真实 IP 还原到 `REMOTE_ADDR`（如 nginx `real_ip_header`）。
+- **订单查询脱敏**：`order_query.php` 只凭订单号就能查，所以昵称和邮箱返回打码后的值；订单号使用安全随机数，无法顺序遍历。
 - **密钥**：微信 API 密钥在数据库中以 AES-128-ECB 加密存放，解密密钥在 `config.php` 的 `$encryption_key`。**这不是强保护**——能读到数据库的人通常也能读到 `config.php`。它的作用是防止数据库导出文件被随手翻到，不要当成密钥托管。
 
 ### 口令怎么存的
@@ -273,7 +286,6 @@ mysql -e "SELECT order_no,status,amount FROM orders ORDER BY id DESC LIMIT 1" �
   - Nginx：照抄 [docs/INSTALLATION.md](docs/INSTALLATION.md) 里的 `deny` 段，**并且必须写在 `location ~ \.php$` 之前**，否则永不生效
 - [ ] **权限**：`.env` 为 `600`，`logs/` 和 `admin/uploads/` 为 `750` 且属主是 Web 用户，**不要用 777**
 - [ ] **关闭错误回显**：`php.ini` 里 `display_errors = Off`、`log_errors = On`
-- [ ] **`PAY_LOG_RAW` 保持关闭**（默认就是关的），只在排错时临时开，用完清日志
 - [ ] **管理员强口令**，并考虑给 `/admin/` 再加一层 HTTP Basic Auth 或 IP 白名单
 - [ ] **数据库账号最小权限**：安装完成后可以把 `CREATE DATABASE` 权限收回
 - [ ] **备份**：定期备份数据库；备份文件不要放在网站目录里
@@ -282,7 +294,7 @@ mysql -e "SELECT order_no,status,amount FROM orders ORDER BY id DESC LIMIT 1" �
 自查命令：
 
 ```bash
-for p in /.env /config.php /logs/ /database.sql /notify.log; do
+for p in /.env /config.php /logs/ /database.sql /notify.log /lib/order_service.php /db_updates/update_db.php /clean_orders.php; do
   echo "$p -> $(curl -s -o /dev/null -w '%{http_code}' https://你的域名$p)"
 done
 # 期望：全部 403 或 404。出现 200 就是漏了。
@@ -292,7 +304,7 @@ done
 
 这个项目欠的账都写在下面一节 [技术债](#-技术债) 里，逐条说明了「是什么 / 影响什么场景 / 为什么现在不做 / 想做的人从哪下手」。安全相关的几条按优先级依次是：
 
-1. [后台 CSRF 只覆盖 18 个 POST 页面里的 4 个](#1-后台-csrf-只覆盖-18-个-post-页面里的-4-个--优先级最高)
+1. [后台 CSRF 只覆盖 18 个 POST 页面里的 5 个](#1-后台-csrf-只覆盖-18-个-post-页面里的-5-个--优先级最高)
 2. [后台 XSS 未逐页审计](#2-后台-xss-未逐页审计)
 3. [`admin/uploads/` 没有上传类型白名单审计](#6-adminuploads-没有上传类型白名单审计)
 4. [微信 API 密钥的加密不是强保护](#8-其他已知项不影响安全但接手前该知道)
@@ -309,23 +321,23 @@ done
 
 ---
 
-### 1. 后台 CSRF 只覆盖 18 个 POST 页面里的 4 个 🔴 优先级最高
+### 1. 后台 CSRF 只覆盖 18 个 POST 页面里的 5 个 🔴 优先级最高
 
 **是什么**
-`lib/CsrfProtection.php` 早就写好了，但后台只有 4 个页面在用：`admin/login.php`、`admin/product_edit.php`、`admin/order_details.php`、`admin/coupons.php`。另外 **14 个会处理 POST 的后台页面没有任何 token 校验**：
+`lib/CsrfProtection.php` 早就写好了，但后台只有 5 个页面在用：`admin/login.php`、`admin/product_edit.php`、`admin/order_details.php`、`admin/coupons.php`、`admin/unlock_ip.php`。另外 **13 个会处理 POST 的后台页面没有任何 token 校验**：
 
 ```
 admin/create_card_task.php      admin/products.php
 admin/dashboard.php             admin/telegram_config.php
 admin/email_settings.php        admin/test_email.php
-admin/epay_config.php           admin/unlock_ip.php
-admin/ip_limits.php             admin/update_product_status.php
+admin/epay_config.php           admin/ip_limits.php
+admin/update_product_status.php
 admin/manage_card_tasks.php     admin/wechat_config.php
 admin/menus.php                 admin/wxpusher_config.php
 ```
 
 **影响谁 / 什么场景**
-只在**管理员已经登录**的浏览器里才成立：管理员带着有效 session 的情况下，被诱导打开一个第三方恶意页面（钓鱼邮件、论坛帖、聊天链接），那个页面就能向上述任意端点自动提交表单。攻击者看不到响应，但**写操作会真的执行**。最值钱的目标是 `admin/wechat_config.php` 和 `admin/epay_config.php` —— 把回调地址改成攻击者的域名，就等于把后续所有支付回调（含买家昵称、邮箱）劫走，而且管理员很可能几天都发现不了。其次是 `admin/products.php`（改价改库存）、`admin/menus.php`（往前台插链接）、`admin/unlock_ip.php` / `admin/ip_limits.php`（解除风控）。
+只在**管理员已经登录**的浏览器里才成立：管理员带着有效 session 的情况下，被诱导打开一个第三方恶意页面（钓鱼邮件、论坛帖、聊天链接），那个页面就能向上述任意端点自动提交表单。攻击者看不到响应，但**写操作会真的执行**。最值钱的目标是 `admin/wechat_config.php` 和 `admin/epay_config.php` —— 把回调地址改成攻击者的域名，就等于把后续所有支付回调（含买家昵称、邮箱）劫走，而且管理员很可能几天都发现不了。其次是 `admin/products.php`（改价改库存）、`admin/menus.php`（往前台插链接）、`admin/ip_limits.php`（解除风控）。
 
 **为什么现在不做**
 本轮修复的范围是登录入口本身（未认证攻击面）。补齐这 14 个页面要逐页改表单 + 改处理分支，每个页面都得单独回归验证一遍「保存还能不能正常工作」；一次性混在安全修复里提交，出了回归很难定位是哪一改动引起的。这是一轮独立的工作。
@@ -479,9 +491,8 @@ location ^~ /admin/uploads/ {
 
 | 项 | 说明 |
 |---|---|
-| **没有自动化测试，也没有 CI** | 每次改动只能人工验证。改支付链路（`order.php` / `notify.php` / `notify_url.php`）时务必实际走一笔小额真实订单，光看代码不算验证。 |
+| **没有自动化测试，也没有 CI** | 仓库里没有测试套件，每次改动只能人工验证。改支付链路（`order.php` / `notify.php` / `notify_url.php`）时务必实际走一笔小额真实订单，光看代码不算验证。 |
 | **后台没有多用户和权限分级** | 只有一个管理员角色，`admin` 表里所有账号权限完全相同，没有操作审计到人。 |
-| **`rainbow_notify.php` 与 `notify_url.php` 功能重叠** | 后者是走 `EpayCore::verifyNotify()` 的正式实现，前者是简化版，只在你手动把它配成回调地址时才会被用到。二选一保留是合理的清理方向。 |
 | **微信 API 密钥的 AES-128-ECB 加密不是强保护** | 解密密钥 `$encryption_key` 就写在 `config.php` 里 —— 能读到数据库的人通常也能读到 `config.php`。它的作用仅限于防止数据库导出文件被随手翻到，**不要当成密钥托管方案**。想做得更好：把密钥改从环境变量读取，并换用带认证的模式（如 AES-256-GCM）。 |
 | **`admin/manage_card_tasks.php:32` 有字符串拼接 SQL** | ```$pdo->exec("UPDATE products SET is_autocard = 1 WHERE id IN ($ids_str)")```。**这不是注入**：`$ids_str` 来自 `implode(',', array_map('intval', $autocard_ids))`，`intval()` 保证每个元素都是整数，拼出来的只可能是 `1,2,3` 这种形式。写在这里是为了省掉后人反复怀疑、反复重新验证一遍。真要改的话，用 `IN` 的占位符展开（`str_repeat('?,', count($ids))`）会更让人放心。 |
 | **前台是内联 HTML，没有模板层** | 20 多个 PHP 文件里 HTML 和逻辑混写，改 UI 要逐文件改。这也是第 4 条升级 Bootstrap 成本高的根本原因。 |

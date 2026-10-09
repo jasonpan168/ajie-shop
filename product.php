@@ -6,7 +6,7 @@ if (!isset($_GET['id'])) {
     die("产品不存在");
 }
 $id = intval($_GET['id']);
-$stmt = $pdo->prepare("SELECT * FROM products WHERE id = ?");
+$stmt = $pdo->prepare("SELECT * FROM products WHERE id = ? AND status = 1");
 $stmt->execute([$id]);
 $product = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$product) {

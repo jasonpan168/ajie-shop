@@ -12,4 +12,4 @@ INSERT INTO system_settings (setting_key, setting_value) VALUES
     ('wxpusher_enabled', '0'),
     ('wxpusher_order_notify', '0'),
     ('wxpusher_payment_notify', '0')
-ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value);
+ON DUPLICATE KEY UPDATE setting_key = setting_key; -- 已存在的配置保持不变，重复执行不会清空

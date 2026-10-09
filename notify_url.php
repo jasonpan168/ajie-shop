@@ -17,111 +17,41 @@
  * @license AGPL-3.0-or-later  https://github.com/jasonpan168/ajie-shop
  */
 
-// 引入数据库连接文件（确保 db.php 路径正确）
 require_once("db.php");
-// 引入配置和 SDK
 require_once("lib/epay.config.php");
 require_once("lib/EpayCore.class.php");
+require_once("lib/order_service.php");
 
 $epay = new EpayCore($epay_config);
-$verify_result = $epay->verifyNotify();
-
-if ($verify_result) {
-    // 获取回调参数
-    $out_trade_no = $_GET['out_trade_no'] ?? '';
-    $trade_no     = $_GET['trade_no'] ?? '';
-    $trade_status = $_GET['trade_status'] ?? '';
-    $type         = $_GET['type'] ?? '';
-    $money        = $_GET['money'] ?? '0.00';
-    
-    // 记录所有回调参数，便于调试
-    error_log("易支付回调参数: " . json_encode($_GET, JSON_UNESCAPED_UNICODE));
-
-    // 根据是否有 plugin=usdt 参数来区分 USDT 订单
-    if (isset($_GET['plugin']) && $_GET['plugin'] === 'usdt') {
-        // USDT订单处理逻辑：更新订单状态为 'paid'
-        try {
-            $stmt = $pdo->prepare("UPDATE orders SET status = 'paid' WHERE order_no = ?");
-            $stmt->execute([$out_trade_no]);
-            error_log("USDT订单：$out_trade_no 更新为 paid");
-            
-            // 发送Telegram支付通知
-            try {
-                require_once 'lib/TelegramNotifier.php';
-                $orderStmt = $pdo->prepare("SELECT * FROM orders WHERE order_no = ?");
-                $orderStmt->execute([$out_trade_no]);
-                $orderData = $orderStmt->fetch(PDO::FETCH_ASSOC);
-
-                $telegramStmt = $pdo->query("SELECT * FROM telegram_config WHERE enabled = 1 LIMIT 1");
-                $telegramConfig = $telegramStmt->fetch(PDO::FETCH_ASSOC);
-                
-                if ($telegramConfig && $orderData) {
-                    error_log("准备发送USDT支付通知，订单号：$out_trade_no");
-                }
-                
-                // 发送WxPusher通知
-                require_once 'lib/WxPusherNotifier.php';
-                $wxPusher = new WxPusherNotifier();
-                if ($orderData) {
-                    $wxPusher->sendPaymentNotification($orderData);
-                    $notifier = new TelegramNotifier($telegramConfig['bot_token'], $telegramConfig['chat_id']);
-                    $notifier->sendPaymentNotification($orderData);
-                    error_log("USDT支付通知发送成功，订单号：$out_trade_no");
-                }
-            } catch (Exception $e) {
-                error_log("USDT支付通知发送失败：" . $e->getMessage());
-            }
-        } catch (Exception $e) {
-            error_log("USDT订单更新失败：".$e->getMessage());
-            echo "fail";
-            exit;
-        }
-    } else {
-        // 普通订单处理逻辑
-        if ($trade_status == 'TRADE_SUCCESS') {
-            try {
-                $stmt = $pdo->prepare("UPDATE orders SET status = 'paid' WHERE order_no = ?");
-                $stmt->execute([$out_trade_no]);
-                error_log("普通订单：$out_trade_no 更新为 paid");
-
-                // 发送Telegram支付通知
-                try {
-                    require_once 'lib/TelegramNotifier.php';
-                    require_once 'lib/WxPusherNotifier.php';
-                    $orderStmt = $pdo->prepare("SELECT * FROM orders WHERE order_no = ?");
-                    $orderStmt->execute([$out_trade_no]);
-                    $orderData = $orderStmt->fetch(PDO::FETCH_ASSOC);
-
-                    $telegramStmt = $pdo->query("SELECT * FROM telegram_config WHERE enabled = 1 LIMIT 1");
-                    $telegramConfig = $telegramStmt->fetch(PDO::FETCH_ASSOC);
-                    
-                    if ($telegramConfig && $orderData) {
-                        $notifier = new TelegramNotifier($telegramConfig['bot_token'], $telegramConfig['chat_id']);
-                        $notifier->sendPaymentNotification($orderData);
-                        error_log("Telegram支付通知发送成功：订单号 " . $out_trade_no);
-                    }
-
-                    // 发送WxPusher通知
-                    if ($orderData) {
-                        $wxPusher = new WxPusherNotifier();
-                        if ($wxPusher->sendPaymentNotification($orderData)) {
-                            error_log("WxPusher支付通知发送成功：订单号 " . $out_trade_no);
-                        } else {
-                            error_log("WxPusher支付通知发送失败或未启用：订单号 " . $out_trade_no);
-                        }
-                    }
-                } catch (Exception $e) {
-                    error_log("通知发送失败：" . $e->getMessage());
-                }
-            } catch (Exception $e) {
-                error_log("普通订单更新失败：".$e->getMessage());
-                echo "fail";
-                exit;
-            }
-        }
-    }
-    echo "success"; // 通知易支付服务器处理成功
-} else {
+if (!$epay->verifyNotify()) {
+    app_log('payment', '[epay] 签名校验失败 ' . ($_GET['out_trade_no'] ?? ''));
     echo "fail";
+    exit;
 }
-?>
+
+// 必须是本商户、且交易成功（网关回调固定带 trade_status=TRADE_SUCCESS）
+if ((string) ($_GET['pid'] ?? '') !== (string) $epay_config['pid'] || ($_GET['trade_status'] ?? '') !== 'TRADE_SUCCESS') {
+    app_log('payment', '[epay] 商户号或交易状态不符 ' . ($_GET['out_trade_no'] ?? '') . ' pid=' . ($_GET['pid'] ?? '') . ' status=' . ($_GET['trade_status'] ?? ''));
+    echo "fail";
+    exit;
+}
+
+$order_no = (string) ($_GET['out_trade_no'] ?? '');
+$paid_cents = yuan_to_cents($_GET['money'] ?? -1);
+
+try {
+    $r = fulfill_paid_order($pdo, $order_no, $paid_cents, 'epay');
+} catch (Exception $e) {
+    echo "fail"; // 让网关稍后重试
+    exit;
+}
+
+if ($r['result'] === 'paid') {
+    echo "success";
+    if (function_exists('fastcgi_finish_request')) {
+        fastcgi_finish_request();
+    }
+    send_paid_notifications($pdo, $r['order'], $r['card']);
+    exit;
+}
+echo $r['result'] === 'duplicate' ? "success" : "fail";

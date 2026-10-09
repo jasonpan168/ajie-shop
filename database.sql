@@ -284,6 +284,7 @@ CREATE TABLE `orders` (
   `card_sent` tinyint(1) NOT NULL DEFAULT '0',
   `ip` varchar(45) DEFAULT NULL COMMENT 'IP地址',
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_order_no` (`order_no`),
   KEY `idx_ip_created` (`ip`,`created_at`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;

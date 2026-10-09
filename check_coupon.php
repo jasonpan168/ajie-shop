@@ -22,7 +22,7 @@ require_once 'db.php';
 header('Content-Type: application/json');
 
 // 获取请求参数
-$code = isset($_GET['code']) ? trim($_GET['code']) : '';
+$code = isset($_GET['code']) ? (is_string($_GET['code']) ? trim($_GET['code']) : '') : '';
 $amount = isset($_GET['amount']) ? floatval($_GET['amount']) : 0;
 
 // 验证参数

@@ -16,19 +16,22 @@
  * @license AGPL-3.0-or-later  https://github.com/jasonpan168/ajie-shop
  */
 
+session_start();
 require_once '../db.php';
-require_once 'includes/header.php';
+require_once '../lib/CsrfProtection.php';
+// 登录、超时、IP 一致性检查（必须在输出任何 HTML 之前）
+require_once 'session_check.php';
 
-// 检查管理员登录状态
-if (!isset($_SESSION['admin']) || $_SESSION['admin'] !== true) {
-    header('Location: login.php');
-    exit;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !CsrfProtection::validateToken()) {
+    die("CSRF 验证失败，请重新提交表单");
 }
+$current_page = 'ip_limits';
+require_once 'includes/header.php';
 
 // 处理永久解除IP限制的请求
 if (isset($_POST['unlock_ip']) && !empty($_POST['ip'])) {
     try {
-        $ip = trim($_POST['ip']);
+        $ip = (is_string($_POST['ip']) ? trim($_POST['ip']) : '');
         
         // 更新IP限制记录，设置为永久解除限制
         $stmt = $pdo->prepare("UPDATE ip_limits SET is_blocked = 0, permanently_unlocked = 1 WHERE ip = ?");
@@ -74,6 +77,7 @@ $ip_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <div class="card-header">永久解除IP限制</div>
         <div class="card-body">
             <form method="post" class="form-inline">
+                <?php echo CsrfProtection::getTokenField(); ?>
                 <div class="form-group mx-sm-3 mb-2">
                     <label for="ip" class="sr-only">IP地址</label>
                     <input type="text" class="form-control" id="ip" name="ip" placeholder="输入IP地址" required>

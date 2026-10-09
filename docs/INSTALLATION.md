@@ -254,6 +254,12 @@ server {
         deny all;
     }
 
+    # 内部库、数据库升级脚本、只供 include 的脚本都不应被直接请求
+    # （db_updates/ 下的脚本被访问就会执行并改库；clean_orders.php 只给下单页 include）
+    location ^~ /lib/        { deny all; }
+    location ^~ /db_updates/ { deny all; }
+    location ~ /(clean_orders|send_mail|db)\.php$ { deny all; }
+
     # PHP 处理
     location ~ \.php$ {
         fastcgi_pass unix:/run/php/php8.1-fpm.sock;

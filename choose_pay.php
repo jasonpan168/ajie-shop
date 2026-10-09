@@ -11,9 +11,16 @@ $stmt = $pdo->query("SELECT * FROM wechat_config LIMIT 1");
 $wechat_config = $stmt->fetch(PDO::FETCH_ASSOC);
 
 // 检查配置是否完整
+// 字段以 database.sql 的 epay_config 表为准（该表没有 enabled 列）
 $epay_ready = $epay_config &&
-              isset($epay_config['enabled']) && $epay_config['enabled'] &&
+              !empty($epay_config['apiurl']) && !empty($epay_config['pid']) && !empty($epay_config['key']) &&
               (!empty($epay_config['alipay_enabled']) || !empty($epay_config['wxpay_enabled']) || !empty($epay_config['usdt_enabled']));
+$epay_types = $epay_ready ? array_keys(array_filter([
+    'alipay' => !empty($epay_config['alipay_enabled']),
+    'wxpay'  => !empty($epay_config['wxpay_enabled']),
+    'usdt'   => !empty($epay_config['usdt_enabled']),
+])) : [];
+$epay_type_names = ['alipay' => '支付宝', 'wxpay' => '微信', 'usdt' => 'USDT'];
 
 $wechat_ready = $wechat_config &&
                 isset($wechat_config['enabled']) && $wechat_config['enabled'] &&
@@ -34,11 +41,19 @@ try {
 }
 
 // 获取订单信息
-$id       = isset($_GET['id']) ? intval($_GET['id']) : 1;
-$nickname = isset($_GET['nickname']) ? trim($_GET['nickname']) : '';
-$email    = isset($_GET['email']) ? trim($_GET['email']) : '';
-$quantity = isset($_GET['quantity']) ? intval($_GET['quantity']) : 1;
-$price    = isset($_GET['price']) ? floatval($_GET['price']) : 0;
+$id       = isset($_GET['id']) ? intval($_GET['id']) : 0;
+$nickname = isset($_GET['nickname']) && is_string($_GET['nickname']) ? trim($_GET['nickname']) : '';
+$email    = isset($_GET['email']) && is_string($_GET['email']) ? trim($_GET['email']) : '';
+$quantity = isset($_GET['quantity']) ? max(1, intval($_GET['quantity'])) : 1;
+
+// 单价以数据库为准，只用于展示；真正扣款金额在下单时由服务端重新计算
+$stmt = $pdo->prepare("SELECT price FROM products WHERE id = ? AND status = 1");
+$stmt->execute([$id]);
+$db_price = $stmt->fetchColumn();
+if ($db_price === false) {
+    die('商品不存在或已下架。<a href="index.php">返回首页</a>');
+}
+$price = (float) $db_price;
 ?>
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -112,7 +127,6 @@ $price    = isset($_GET['price']) ? floatval($_GET['price']) : 0;
                 <input type="hidden" name="nickname" value="<?php echo SafeOutput::attr($nickname); ?>">
                 <input type="hidden" name="email" value="<?php echo SafeOutput::attr($email); ?>">
                 <input type="hidden" name="quantity" value="<?php echo SafeOutput::attr($quantity); ?>">
-                <input type="hidden" name="price" value="<?php echo SafeOutput::attr($price); ?>">
                 <input type="hidden" name="payment_method" id="payment_method" value="">
 
                 <?php if (!$epay_ready && !$wechat_ready): ?>
@@ -135,7 +149,14 @@ $price    = isset($_GET['price']) ? floatval($_GET['price']) : 0;
                             <input type="radio" name="method_choice" value="epay" id="method_epay">
                             <label for="method_epay" style="cursor: pointer; margin: 0;">
                                 <div class="payment-method-title"><i class="fas fa-money-bill-wave"></i> 易支付</div>
-                                <div class="payment-method-desc">支持支付宝、微信、USDT</div>
+                                <div class="payment-method-desc">
+                                    <?php foreach ($epay_types as $i => $t): ?>
+                                    <label style="margin-right: 12px; cursor: pointer;">
+                                        <input type="radio" name="type" value="<?php echo SafeOutput::attr($t); ?>" <?php echo $i === 0 ? 'checked' : ''; ?>>
+                                        <?php echo SafeOutput::text($epay_type_names[$t]); ?>
+                                    </label>
+                                    <?php endforeach; ?>
+                                </div>
                             </label>
                         </div>
                     </div>
@@ -151,6 +172,14 @@ $price    = isset($_GET['price']) ? floatval($_GET['price']) : 0;
                                 <div class="payment-method-desc">安全快捷的微信支付</div>
                             </label>
                         </div>
+                    </div>
+                    <?php endif; ?>
+
+                    <?php if ($coupon_enabled): ?>
+                    <!-- 优惠码（选填）：只提交优惠码本身，抵扣金额由服务端按数据库计算 -->
+                    <div class="form-group mt-3">
+                        <label for="coupon_code">优惠码（选填）</label>
+                        <input type="text" class="form-control" id="coupon_code" name="coupon_code_hidden" maxlength="50" placeholder="有优惠码请填写，下单时自动抵扣">
                     </div>
                     <?php endif; ?>
 
@@ -199,6 +228,7 @@ $price    = isset($_GET['price']) ? floatval($_GET['price']) : 0;
             if (method === 'wechat') {
                 form.action = 'order.php';
                 form.method = 'GET';
+                form.querySelectorAll('input[name="type"]').forEach(el => el.disabled = true);
             } else if (method === 'epay') {
                 form.action = 'rainbow_pay.php';
                 form.method = 'GET';

@@ -19,355 +19,76 @@
 
 require_once 'db.php';
 require_once 'config.php';
-require_once 'send_mail.php';
-require_once 'lib/Logger.php';
+require_once 'lib/order_service.php';
 
-// 日志一律写在 logs/ 目录里，绝不能写在网站根目录：
-// 根目录下的 notify.log 可以被任何人用 https://站点/notify.log 直接拖走，
-// 里面是全部订单号、金额、买家邮箱和昵称。
-$logDir = __DIR__ . '/logs';
-if (!is_dir($logDir)) {
-    @mkdir($logDir, 0750, true);
-}
-$debugLogFile = $logDir . '/notify_debug.log';
-$logFile = $logDir . '/notify.log';
-
-// 是否记录支付回调的原始报文与解析结果。
-// 这些内容含买家邮箱、昵称、签名值和卡密，属于个人信息与敏感数据，
-// 生产环境默认关闭，只在排错时临时设置环境变量 PAY_LOG_RAW=1 打开。
-$logRawCallback = (getenv('PAY_LOG_RAW') === '1');
-
-// 记录原始 POST 数据
-$rawData = file_get_contents('php://input');
-if ($logRawCallback) {
-    file_put_contents($debugLogFile, date('Y-m-d H:i:s') . " Raw POST data:\n" . $rawData . "\n", FILE_APPEND);
-    file_put_contents($logFile, date('Y-m-d H:i:s') . " - Received XML:\n" . $rawData . "\n", FILE_APPEND);
-} else {
-    file_put_contents($logFile, date('Y-m-d H:i:s') . " - Received callback (" . strlen($rawData) . " bytes)\n", FILE_APPEND);
+function wx_reply($ok, $msg = 'OK') {
+    echo '<xml><return_code><![CDATA[' . ($ok ? 'SUCCESS' : 'FAIL') . ']]></return_code><return_msg><![CDATA[' . $msg . ']]></return_msg></xml>';
+    exit;
 }
 
-if (!$rawData) {
-    exit('No data received');
-}
-
-// 解析 XML 数据为数组
-$result = json_decode(json_encode(simplexml_load_string($rawData, 'SimpleXMLElement', LIBXML_NOCDATA)), true);
-if ($logRawCallback) {
-    file_put_contents($logFile, "Parsed result:\n" . print_r($result, true) . "\n", FILE_APPEND);
-}
-
-// 获取微信传来的签名，并移除
-$wechatSign = isset($result['sign']) ? (string)$result['sign'] : '';
-unset($result['sign']);
-
-// 签名函数：过滤空值及 sign, sign_type 后追加 &key=KEY
+// 微信 APIv2 签名：过滤空值和 sign，按 key 排序拼接后追加 &key=
 function getLocalSign($params, $key) {
     ksort($params);
     $stringA = '';
     foreach ($params as $k => $v) {
-        if ($v !== '' && !is_array($v)) {
+        if ($k !== 'sign' && $v !== '' && !is_array($v)) {
             $stringA .= $k . '=' . $v . '&';
         }
     }
-    $stringSignTemp = rtrim($stringA, '&') . '&key=' . $key;
-    return strtoupper(md5($stringSignTemp));
+    return strtoupper(md5($stringA . 'key=' . $key));
 }
 
-// 从 config.php 获取解密后的商户密钥
-$merchant_key_local = $merchant_api_key;
-$localSign = getLocalSign($result, $merchant_key_local);
-if ($logRawCallback) {
-    file_put_contents($logFile, "Local sign: $localSign, WeChat sign: $wechatSign\n", FILE_APPEND);
+$rawData = file_get_contents('php://input');
+if (!$rawData) {
+    wx_reply(false, 'No data');
 }
 
-// 验证签名和支付状态（使用 === 和统一大小写）
-// 用 hash_equals 做定长时间比较，避免通过响应时间逐字节爆破签名
-if (hash_equals(strtoupper($localSign), strtoupper($wechatSign))
-    && ($result['return_code'] ?? '') === 'SUCCESS'
-    && ($result['result_code'] ?? '') === 'SUCCESS') {
-    $order_no = $result['out_trade_no'];
-    $total_fee = $result['total_fee']; // 单位：分
+libxml_use_internal_errors(true);
+$xml = simplexml_load_string($rawData, 'SimpleXMLElement', LIBXML_NOCDATA | LIBXML_NONET);
+$result = $xml ? json_decode(json_encode($xml), true) : null;
+if (!is_array($result) || empty($result['sign'])) {
+    app_log('payment', '[wechat] 回调报文无法解析');
+    wx_reply(false, 'Bad request');
+}
 
-    // 检查订单是否已处理（幂等性检查，防止重复处理）
-    $stmtCheck = $pdo->prepare("SELECT id, status, amount FROM orders WHERE order_no = ?");
-    $stmtCheck->execute([$order_no]);
-    $existingOrder = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+if (empty($merchant_api_key) || !hash_equals(getLocalSign($result, $merchant_api_key), (string) $result['sign'])) {
+    app_log('payment', '[wechat] 签名校验失败 ' . ($result['out_trade_no'] ?? ''));
+    wx_reply(false, 'Signature verification failed');
+}
 
-    if (!$existingOrder) {
-        file_put_contents($logFile, "Error: Order $order_no not found\n", FILE_APPEND);
-        exit;
-    }
+if (($result['return_code'] ?? '') !== 'SUCCESS' || ($result['result_code'] ?? '') !== 'SUCCESS') {
+    wx_reply(true);
+}
 
-    // 如果订单已支付，忽略重复通知
-    if ($existingOrder['status'] === 'paid' || $existingOrder['status'] === 'shipped' || $existingOrder['status'] === 'completed') {
-        file_put_contents($logFile, "Warning: Duplicate payment notification for order $order_no (already $existingOrder[status])\n", FILE_APPEND);
-        exit;
-    }
+// 必须是本商户的单，防止拿别的商户号的合法通知来套
+if (($result['appid'] ?? '') !== (string) $merchant_appid || ($result['mch_id'] ?? '') !== (string) $merchant_mchid) {
+    app_log('payment', '[wechat] appid/商户号不匹配 ' . ($result['out_trade_no'] ?? ''));
+    wx_reply(false, 'Merchant mismatch');
+}
 
-    // 验证支付金额是否匹配（防止支付金额被篡改）
-    $expected_amount_cents = (int)($existingOrder['amount'] * 100);
-    if ((int)$total_fee !== $expected_amount_cents) {
-        file_put_contents($logFile, "Error: Amount mismatch for order $order_no. Expected: $expected_amount_cents, Got: $total_fee\n", FILE_APPEND);
-        exit;
-    }
+$order_no = (string) ($result['out_trade_no'] ?? '');
+$paid_cents = (int) ($result['total_fee'] ?? -1);
 
-    // 从 attach 参数解析 product_id, quantity, nickname, email
-    $attach = isset($result['attach']) ? json_decode($result['attach'], true) : [];
-    
-    // 发送WxPusher通知
-    require_once 'lib/WxPusherNotifier.php';
-    $wxPusher = new WxPusherNotifier();
-    
-    // 获取订单信息
-    $orderStmt = $pdo->prepare("SELECT * FROM orders WHERE order_no = ?");
-    $orderStmt->execute([$order_no]);
-    $orderData = $orderStmt->fetch(PDO::FETCH_ASSOC);
-    
-    if ($orderData) {
-        $wxPusher->sendPaymentNotification($orderData);
-    }
-    if ($logRawCallback) {
-        file_put_contents($logFile, "Attach data:\n" . print_r($attach, true) . "\n", FILE_APPEND);
-    }
-    
-    $product_id = isset($attach['product_id']) ? intval($attach['product_id']) : 0;
-    $quantity   = isset($attach['quantity']) ? intval($attach['quantity']) : 1;
-    $nickname   = isset($attach['nickname']) ? $attach['nickname'] : '';
-    $email      = isset($attach['email']) ? $attach['email'] : '';
+try {
+    $r = fulfill_paid_order($pdo, $order_no, $paid_cents, 'wechat');
+} catch (Exception $e) {
+    wx_reply(false, 'Server error'); // 让微信稍后重试
+}
 
-    if (!$order_no) {
-        file_put_contents($logFile, "Missing order_no in callback.\n", FILE_APPEND);
-        exit('<xml><return_code><![CDATA[FAIL]]></return_code><return_msg><![CDATA[Missing order_no]]></return_msg></xml>');
-    }
-    
-    // 查询产品信息，获取 title & is_autocard
-    try {
-        $stmtProd = $pdo->prepare("SELECT title, is_autocard FROM products WHERE id = ?");
-        $stmtProd->execute([$product_id]);
-        $productData = $stmtProd->fetch(PDO::FETCH_ASSOC);
-        $product_title = $productData ? $productData['title'] : '';
-        $is_autocard = $productData ? $productData['is_autocard'] : 0;
-    } catch (Exception $e) {
-        // 如果出错或没有 is_autocard 字段，则默认 is_autocard=0
-        $stmtProd = $pdo->prepare("SELECT title FROM products WHERE id = ?");
-        $stmtProd->execute([$product_id]);
-        $productData = $stmtProd->fetch(PDO::FETCH_ASSOC);
-        $product_title = $productData ? $productData['title'] : '';
-        $is_autocard = 0;
-    }
-    if (empty($product_title) && isset($attach['title'])) {
-        $product_title = $attach['title'];
-    }
-    if (empty($product_title)) {
-        $product_title = '未知产品';
-    }
-    file_put_contents($logFile, "Queried product title: $product_title, is_autocard: $is_autocard\n", FILE_APPEND);
-    
-    // 更新或插入订单记录
-    $stmt = $pdo->prepare("SELECT * FROM orders WHERE order_no = ?");
-    $stmt->execute([$order_no]);
-    $orderRecord = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    // 使用数据库事务确保一致性
-    try {
-        $pdo->beginTransaction();
+if ($r['result'] === 'not_found') {
+    wx_reply(false, 'Order not found');
+}
+if ($r['result'] === 'amount_mismatch') {
+    wx_reply(false, 'Amount mismatch');
+}
 
-        if ($orderRecord) {
-            if ($orderRecord['status'] !== 'paid') {
-                // 更新订单状态
-                $stmt = $pdo->prepare("UPDATE orders SET status = 'paid', amount = ? WHERE order_no = ?");
-                $stmt->execute([$total_fee / 100, $order_no]);
-                file_put_contents($logFile, "Order $order_no updated to paid.\n", FILE_APPEND);
-                Logger::logPaymentEvent('Payment Verified', $order_no, $total_fee / 100, ['status' => 'paid']);
-
-                // 在事务内扣减库存
-                $stmt = $pdo->prepare("UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?");
-                $result = $stmt->execute([$quantity, $product_id, $quantity]);
-                if ($stmt->rowCount() === 0) {
-                    throw new Exception("库存不足，无法完成扣减");
-                }
-            } else {
-                file_put_contents($logFile, "Order $order_no already marked as paid.\n", FILE_APPEND);
-                Logger::logPaymentEvent('Duplicate Payment Notification', $order_no, $total_fee / 100, ['status' => 'already_paid']);
-                // 不处理已支付的订单，直接提交
-                $pdo->commit();
-            }
-        } else {
-            // 新订单
-            $stmt = $pdo->prepare("
-                INSERT INTO orders
-                (order_no, product_id, product_title, nickname, email, quantity, amount, status, created_at, pay_type)
-                VALUES
-                (?, ?, ?, ?, ?, ?, ?, 'paid', NOW(), ?)
-            ");
-            $stmt->execute([
-                $order_no,
-                $product_id,
-                $product_title,
-                $nickname,
-                $email,
-                $quantity,
-                $total_fee / 100,
-                'wxpay'
-            ]);
-            file_put_contents($logFile, "Order $order_no inserted successfully.\n", FILE_APPEND);
-
-            // 在事务内扣减库存
-            $stmt = $pdo->prepare("UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?");
-            $result = $stmt->execute([$quantity, $product_id, $quantity]);
-            if ($stmt->rowCount() === 0) {
-                throw new Exception("库存不足，无法完成扣减");
-            }
-        }
-
-        // 如果到这里说明所有操作都成功，提交事务
-        $pdo->commit();
-        Logger::logAction('Transaction Committed', $order_no, ['type' => 'payment']);
-
-    } catch (Exception $e) {
-        // 事务失败，回滚
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
-        file_put_contents($logFile, "Transaction failed for order $order_no: " . $e->getMessage() . "\n", FILE_APPEND);
-        Logger::logSecurityEvent('Transaction Rollback', 'ERROR', ['order' => $order_no, 'error' => $e->getMessage()]);
-        // 不要在这里返回成功，让微信重新通知
-        exit;
-    }
-    
-    // 发送Telegram支付通知
-    try {
-        require_once 'lib/TelegramNotifier.php';
-        $orderData = [
-            'order_no' => $order_no,
-            'product_title' => $product_title,
-            'quantity' => $quantity,
-            'amount' => $total_fee / 100,
-            'email' => $email,
-            'pay_type' => 'wxpay',
-            'created_at' => date('Y-m-d H:i:s')
-        ];
-        
-        $telegramStmt = $pdo->query("SELECT * FROM telegram_config WHERE enabled = 1 LIMIT 1");
-        $telegramConfig = $telegramStmt->fetch(PDO::FETCH_ASSOC);
-        
-        if ($telegramConfig) {
-            file_put_contents($logFile, "准备发送微信支付Telegram通知，订单号：$order_no\n", FILE_APPEND);
-            $notifier = new TelegramNotifier($telegramConfig['bot_token'], $telegramConfig['chat_id']);
-            $notifier->sendPaymentNotification($orderData);
-            file_put_contents($logFile, "微信支付Telegram通知发送成功，订单号：$order_no\n", FILE_APPEND);
-        } else {
-            file_put_contents($logFile, "未找到启用的Telegram配置，无法发送通知\n", FILE_APPEND);
-        }
-    } catch (Exception $e) {
-        file_put_contents($logFile, "微信支付Telegram通知发送失败：" . $e->getMessage() . "\n", FILE_APPEND);
-    }
-    
-    // 返回成功给微信，避免超时
+// paid / duplicate 都告诉微信处理成功；只有首次入账才发通知
+if ($r['result'] === 'paid') {
     echo '<xml><return_code><![CDATA[SUCCESS]]></return_code><return_msg><![CDATA[OK]]></return_msg></xml>';
     if (function_exists('fastcgi_finish_request')) {
         fastcgi_finish_request();
     }
-    
-    // 1. 发送支付成功邮件（无发卡内容）
-    $subject_payment = "阿杰平台：您的订单 {$order_no} 已支付成功";
-    $body_payment = "<p>尊敬的网友，</p>
-                     <p>您的订单 <strong>{$order_no}</strong> 已支付成功！</p>
-                     <p>产品：" . htmlspecialchars($product_title) . "</p>
-                     <p>数量：{$quantity}</p>
-                     <p>总金额：￥" . ($total_fee / 100) . "</p>
-                     <p>感谢您的购买！</p>
-                     <p>—— 祝您使用愉快</p>";
-    $mailResult1 = sendMail($email, $subject_payment, $body_payment);
-    file_put_contents($logFile, "Payment email send result: " . print_r($mailResult1, true) . "\n", FILE_APPEND);
-    
-    // 2. 自动发卡逻辑
-    if ($is_autocard == 1) {
-        // 检查是否已经发卡
-        $stmt = $pdo->prepare("SELECT card_sent FROM orders WHERE order_no = ?");
-        $stmt->execute([$order_no]);
-        $orderInfo = $stmt->fetch(PDO::FETCH_ASSOC);
-        if (isset($orderInfo['card_sent']) && $orderInfo['card_sent'] == 1) {
-            file_put_contents($logFile, "Auto card already sent for order $order_no.\n", FILE_APPEND);
-        } else {
-            $cardContent = '';
-            // 查询发卡任务
-            $stmtTask = $pdo->prepare("SELECT * FROM auto_card_tasks WHERE product_id = ? AND status = 'active' ORDER BY created_at ASC LIMIT 1");
-            $stmtTask->execute([$product_id]);
-            $task = $stmtTask->fetch(PDO::FETCH_ASSOC);
-            if ($task) {
-                file_put_contents($logFile, "Found auto card task: " . print_r($task, true) . "\n", FILE_APPEND);
-                if (isset($task['repeat_flag']) && $task['repeat_flag'] == 1) {
-                    // 固定发卡模式
-                    $stmtCard = $pdo->prepare("SELECT * FROM auto_cards WHERE task_id = ? LIMIT 1");
-                    $stmtCard->execute([$task['id']]);
-                    $card = $stmtCard->fetch(PDO::FETCH_ASSOC);
-                    if ($card) {
-                        $cardContent = $card['card_content'];
-                        file_put_contents($logFile, "Fixed card mode: using card id " . $card['id'] . "\n", FILE_APPEND);
-                    } else {
-                        $cardContent = "暂无可用发卡内容，请联系客服。";
-                        file_put_contents($logFile, "Fixed card mode: no card found.\n", FILE_APPEND);
-                    }
-                } else {
-                    // 依次发卡模式：使用事务锁定一条未使用卡密
-                    try {
-                        $pdo->beginTransaction();
-                        $stmtCard = $pdo->prepare("
-                            SELECT * 
-                            FROM auto_cards 
-                            WHERE task_id = ? AND status = 'unused' 
-                            ORDER BY id ASC 
-                            LIMIT 1 
-                            FOR UPDATE
-                        ");
-                        $stmtCard->execute([$task['id']]);
-                        $card = $stmtCard->fetch(PDO::FETCH_ASSOC);
-                        if ($card) {
-                            $cardContent = $card['card_content'];
-                            // 注意这里要更新 order_no 字段
-                            $stmtUpdateCard = $pdo->prepare("
-                                UPDATE auto_cards 
-                                SET status = 'used', email = ?, order_no = ?, created_at = NOW() 
-                                WHERE id = ?
-                            ");
-                            $stmtUpdateCard->execute([$email, $order_no, $card['id']]);
-                            file_put_contents($logFile, "Sequential mode: card id " . $card['id'] . " marked as used.\n", FILE_APPEND);
-                        } else {
-                            $cardContent = "暂无可用卡密，请联系客服。";
-                            file_put_contents($logFile, "Sequential mode: no unused card found.\n", FILE_APPEND);
-                        }
-                        $pdo->commit();
-                    } catch (Exception $ex) {
-                        $pdo->rollBack();
-                        file_put_contents($logFile, "Sequential mode transaction failed: " . $ex->getMessage() . "\n", FILE_APPEND);
-                        $cardContent = "发卡失败，请联系客服。";
-                    }
-                }
-                file_put_contents($logFile, "Card issued for order $order_no" . ($logRawCallback ? ": " . $cardContent : " (content redacted)") . "\n", FILE_APPEND);
-                
-                // 发送自动发卡邮件
-                $subject_card = "阿杰平台：您的自动发卡内容已发放";
-                $body_card = "<p>尊敬的网友，</p>
-                              <p>您的订单 <strong>{$order_no}</strong> 已支付成功，以下是您的自动发卡内容：</p>
-                              <p>产品：" . htmlspecialchars($product_title) . "</p>
-                              <p>卡密/内容：" . $cardContent . "</p>
-                              <p>感谢您的购买，祝您使用愉快！</p>";
-                $mailResult2 = sendMail($email, $subject_card, $body_card);
-                file_put_contents($logFile, "Auto card email send result: " . print_r($mailResult2, true) . "\n", FILE_APPEND);
-                
-                // 标记订单已发卡
-                $stmt = $pdo->prepare("UPDATE orders SET card_sent = 1 WHERE order_no = ?");
-                $stmt->execute([$order_no]);
-            } else {
-                file_put_contents($logFile, "未找到与商品关联的发卡任务。\n", FILE_APPEND);
-            }
-        }
-    }
-    exit;
-} else {
-    file_put_contents($logFile, "Signature verification failed or error in callback.\n", FILE_APPEND);
-    echo '<xml><return_code><![CDATA[FAIL]]></return_code><return_msg><![CDATA[Signature verification failed]]></return_msg></xml>';
+    send_paid_notifications($pdo, $r['order'], $r['card']);
     exit;
 }
-?>
+wx_reply(true);

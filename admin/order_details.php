@@ -20,11 +20,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_order_ids']) &
     if (!CsrfProtection::validateToken()) {
         die("CSRF 验证失败，请重新提交表单");
     }
-    $ids = $_POST['delete_order_ids'];
-    // 为避免 SQL 注入，使用预处理
-    $in  = str_repeat('?,', count($ids) - 1) . '?';
-    $stmt = $pdo->prepare("DELETE FROM orders WHERE order_no IN ($in)");
-    $stmt->execute($ids);
+    $ids = array_values(array_filter($_POST['delete_order_ids'], 'is_string'));
+    if ($ids) {
+        // 为避免 SQL 注入，使用预处理；删除待支付订单时退回其预扣的库存
+        $in  = str_repeat('?,', count($ids) - 1) . '?';
+        $pdo->beginTransaction();
+        try {
+            $stmt = $pdo->prepare("SELECT product_id, quantity FROM orders WHERE order_no IN ($in) AND status = 'pending' FOR UPDATE");
+            $stmt->execute($ids);
+            $restock = $pdo->prepare("UPDATE products SET stock = stock + ? WHERE id = ?");
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $o) {
+                $restock->execute([(int) $o['quantity'], (int) $o['product_id']]);
+            }
+            $pdo->prepare("DELETE FROM orders WHERE order_no IN ($in)")->execute($ids);
+            $pdo->commit();
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            die('删除订单失败：' . htmlspecialchars($e->getMessage()));
+        }
+    }
     header("Location: order_details.php?success=1");
     exit;
 }

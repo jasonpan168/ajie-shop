@@ -19,7 +19,7 @@
 require_once 'db.php';
 header('Content-Type: application/json');
 
-$order_no = isset($_GET['order_no']) ? trim($_GET['order_no']) : '';
+$order_no = isset($_GET['order_no']) ? (is_string($_GET['order_no']) ? trim($_GET['order_no']) : '') : '';
 if (!$order_no) {
     echo json_encode(['error' => '订单号不能为空']);
     exit;
@@ -46,6 +46,19 @@ $statusMap = [
     'cancelled' => '已取消'
 ];
 $order['status'] = isset($statusMap[$order['status']]) ? $statusMap[$order['status']] : $order['status'];
+
+// 只凭订单号就能查询，个人信息必须脱敏，防止遍历订单号批量拿客户邮箱
+$mask = function ($s, $keep) {
+    $len = mb_strlen($s);
+    return $len <= $keep ? str_repeat('*', max($len, 1)) : mb_substr($s, 0, $keep) . str_repeat('*', min($len - $keep, 6));
+};
+$order['nickname'] = $mask((string) $order['nickname'], 1);
+if (strpos((string) $order['email'], '@') !== false) {
+    list($user, $domain) = explode('@', $order['email'], 2);
+    $order['email'] = $mask($user, 2) . '@' . $domain;
+} else {
+    $order['email'] = $mask((string) $order['email'], 2);
+}
 
 echo json_encode($order);
 ?>
