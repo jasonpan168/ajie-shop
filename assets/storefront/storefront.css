@@ -98,4 +98,12 @@ body.sf:has(.home-main)>.site-footer{padding-top:88px}
 .login-panel{align-self:flex-start;min-height:0;height:auto}
 .brand-mark{display:inline-grid;place-items:center;width:44px;height:44px;margin-right:8px;border-radius:12px;background:var(--accent);color:var(--on-button,#fff);font-style:normal;font-size:22px;font-weight:800;letter-spacing:0}.theme-neon .brand-mark,.theme-gallery .brand-mark{color:#04161a}.theme-gold .brand-mark{color:#1a1206}
 .theme-blue .product-copy .description{display:none}.theme-blue .product-copy h2{margin-bottom:4px}
-.theme-blue .home-main{padding-bottom:72px}.theme-blue .home-main:before{bottom:0}.theme-blue .site-footer{background:none;margin-top:0}
+.theme-blue .home-main{padding-bottom:56px}.theme-blue .home-main:before{bottom:0}
+/* 蓝白模板：蓝色背景一直延伸到页面最底部，页脚也在蓝底上 */
+.theme-blue .site-footer{position:relative;isolation:isolate;background:none;margin-top:0;color:#fff}.theme-blue .site-footer:before{content:"";position:absolute;z-index:-1;top:0;bottom:0;left:calc((100% - 100vw)/2);width:100vw;background:#577ffc}.theme-blue .footer-bottom{color:#ffffffcc;padding:26px 0 34px}.theme-blue .footer-bottom>span:first-child{color:#fff}.theme-blue .support-row{border-color:#ffffff33}
+html:has(body.theme-blue){background:#577ffc}
+body.theme-blue{overflow-x:clip}
+/* 内容比屏幕短时，首页内容在页面里垂直居中，避免底部大片留白（蓝白模板的蓝底按位置铺设，不参与） */
+body.sf:not(.theme-blue)>.home-main{display:flex;flex-direction:column;justify-content:center;padding-top:24px;padding-bottom:48px}
+.theme-gallery .product-card:nth-of-type(n+4) .price strong.price-pending,.theme-gold .product-card:nth-of-type(n+4) .price strong.price-pending{font-size:17px}
+.theme-gallery .product-card:nth-of-type(-n+3) .price strong.price-pending,.theme-gold .product-card:nth-of-type(-n+3) .price strong.price-pending{font-size:22px}
